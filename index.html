@@ -1,11 +1,11 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>Brick Fleet Desk</title>
+<title>Fleet Management Dashboard</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
-/* Layout: dispatcher desk. Header + tabs on top; live map beside a truck list; tables below for costs, matching and orders. */
+/* Layout: KPI strip first, then three tabs. Live fleet = schematic map beside a truck list that turns into one truck's route plan when tapped. Jobs live in a bottom sheet. */
 :root {
   --bg: #ECEFEA;
   --surface: #F8F9F6;
@@ -47,6 +47,7 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body {
   background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 14px; line-height: 1.45;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
@@ -60,15 +61,16 @@ h3 { font-size: 17px; }
 p { margin: 0; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
+a.btn { text-decoration: none; display: inline-block; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
-.num { font-variant-numeric: tabular-nums; }
 .muted { color: var(--muted); }
 .small { font-size: 12.5px; }
 
 header.top { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; justify-content: space-between; }
 .brand { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .brand .sub { color: var(--muted); font-size: 13px; }
+.topctl { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
 .fac { display: flex; align-items: center; gap: 8px; }
 .fac label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
 
@@ -91,36 +93,31 @@ nav.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: 
 .kpi.warn .v { color: var(--warn); }
 .kpi.good .v { color: var(--ok); }
 
-.live-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 16px; }
+.live-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 @media (max-width: 860px) { .live-grid { grid-template-columns: minmax(0, 1fr); } }
 .mapbox { border: 1px solid var(--line); border-radius: 6px; background: var(--land); overflow: hidden; }
-.mapbox svg { display: block; width: 100%; height: auto; max-height: 560px; }
-.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--muted); }
+.mapbox svg { display: block; width: 100%; height: auto; max-height: 600px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--muted); margin-top: 10px; }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: none; background: var(--muted); }
 .s-outbound { background: var(--s-outbound); } .s-unloading { background: var(--s-unloading); }
 .s-returning { background: var(--s-returning); } .s-factory { background: var(--s-factory); }
 
-.tlist { display: flex; flex-direction: column; max-height: 520px; overflow-y: auto; border: 1px solid var(--line); border-radius: 6px; }
+.tlist { display: flex; flex-direction: column; max-height: 560px; overflow-y: auto; border: 1px solid var(--line); border-radius: 6px; }
 .trow {
-  display: grid; grid-template-columns: 12px 44px minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; text-align: left;
+  display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; text-align: left;
   background: var(--surface); border: 0; border-bottom: 1px solid var(--line); padding: 8px 10px; width: 100%;
 }
 .trow:last-child { border-bottom: 0; }
-.trow[aria-pressed="true"] { background: var(--accent-soft); }
+.trow:hover { background: var(--accent-soft); }
 .trow .tn { font-family: var(--f-mono); font-weight: 500; }
-.trow .tloc { min-width: 0; overflow-wrap: anywhere; }
-.trow .tsub { grid-column: 3 / 5; color: var(--muted); font-size: 12.5px; }
+.trow .tsub { grid-column: 2 / 4; color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
 .pill { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 12px; font-weight: 500; white-space: nowrap; }
-.pill.live { background: var(--ok-soft); color: var(--ok); }
+.pill.live, .pill.ok { background: var(--ok-soft); color: var(--ok); }
 .pill.late { background: var(--warn-soft); color: var(--warn); }
 .pill.crit { background: var(--crit-soft); color: var(--crit); }
-.pill.ok { background: var(--ok-soft); color: var(--ok); }
 .pill.info { background: var(--accent-soft); color: var(--accent); }
-
-.detail { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px 24px; }
-.detail dt { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
-.detail dd { margin: 2px 0 0; }
+.pill.plain { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
 
 .btn { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 7px 12px; font-weight: 500; }
 .btn:hover { border-color: var(--accent); }
@@ -138,6 +135,9 @@ input[type=number], input[type=text], select, textarea {
 }
 textarea { font-family: var(--f-mono); font-size: 12.5px; resize: vertical; min-height: 96px; }
 .grid-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.grid-fields .wide { grid-column: 1 / -1; }
+.hint { font-size: 12.5px; color: var(--muted); min-height: 1.3em; }
+.hint.good { color: var(--ok); } .hint.bad { color: var(--crit); }
 
 .scroll { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
@@ -150,8 +150,8 @@ td input[type=number], td input[type=text], td select { padding: 3px 6px; }
 .bar { display: block; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; min-width: 70px; }
 .bar i { display: block; height: 100%; background: var(--accent); }
 .bar.warn i { background: var(--warn); } .bar.crit i { background: var(--crit); }
+.empty-state { color: var(--muted); padding: 16px 4px; }
 .note { background: var(--accent-soft); border-radius: 6px; padding: 10px 12px; font-size: 13px; }
-.empty-state { color: var(--muted); padding: 20px 4px; }
 .split { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
 hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; width: 100%; }
 .cost-break { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
@@ -159,76 +159,108 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; width: 100%; }
 .cost-break b { display: block; font-family: var(--f-display); font-size: 22px; font-variant-numeric: tabular-nums; }
 .cost-break span { color: var(--muted); font-size: 12.5px; }
 .thumb { max-width: 220px; max-height: 160px; border-radius: 6px; border: 1px solid var(--line); }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { background: var(--surface); border: 0; padding: 7px 12px; border-right: 1px solid var(--line); font-weight: 500; }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+
+/* route plan for one truck */
+.rhead { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+.chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.chip { background: var(--bg); border-radius: 6px; padding: 8px 10px; min-width: 0; }
+.chip b { display: block; font-family: var(--f-display); font-size: 20px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.chip span { color: var(--muted); font-size: 12px; }
+.timeline { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; }
+.timeline li { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 2px 10px; padding: 8px 0; border-bottom: 1px solid var(--line); align-items: start; }
+.timeline li:last-child { border-bottom: 0; }
+.stopno { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-family: var(--f-mono); font-size: 12px; font-weight: 500; background: var(--accent); color: var(--accent-ink); border: 2px solid var(--accent); }
+.stopno.sug { background: var(--surface); color: var(--accent); border-style: dashed; }
+.stopno.home { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.timeline .when { text-align: right; font-family: var(--f-mono); font-size: 13px; white-space: nowrap; }
+.timeline .sub { grid-column: 2 / 4; color: var(--muted); font-size: 12.5px; }
+.jobcard { border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; background: var(--bg); }
+.jobcard.sug { border-style: dashed; }
+.jobcard .top { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: space-between; }
+.jobs-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+
+/* bottom sheet / modal */
+dialog#jobsDlg {
+  border: 1px solid var(--line); border-radius: 10px; padding: 0; width: min(1000px, calc(100vw - 24px)); max-height: calc(100dvh - 32px);
+  background: var(--surface); color: var(--ink);
+}
+dialog#jobsDlg[open] { display: flex; flex-direction: column; }
+dialog#jobsDlg::backdrop { background: rgba(8, 14, 12, .55); }
+.dhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px 0; }
+.dbody { padding: 16px; overflow: auto; min-height: 0; display: flex; flex-direction: column; gap: 16px; padding-bottom: max(16px, env(safe-area-inset-bottom, 0px)); }
+.dtabs { display: flex; gap: 4px; padding: 0 16px; border-bottom: 1px solid var(--line); }
+.dtabs button { background: none; border: 0; border-bottom: 3px solid transparent; padding: 10px 12px; font-family: var(--f-display); font-size: 18px; font-weight: 600; color: var(--muted); }
+.dtabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+@media (max-width: 700px) {
+  dialog#jobsDlg { margin: auto 0 0 0; width: 100%; max-width: 100%; border-radius: 14px 14px 0 0; max-height: 92dvh; }
+}
+#toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: max(16px, env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 9px 14px; border-radius: 8px; z-index: 50; max-width: calc(100vw - 32px); font-size: 13px; }
 </style>
 
-<div class="app">
+<div class="app" id="dash">
   <header class="top">
     <div class="brand">
-      <h1>Brick Fleet Desk</h1>
-      <div class="sub">16 open trailers &middot; cost per km &middot; truck positions &middot; return-trip jobs. All fleet figures are sample data until you replace them.</div>
+      <h1>Fleet Management Dashboard</h1>
+      <div class="sub">16 open trailers &middot; two factories &middot; jobs along the way home. Fleet, jobs and costs are sample data until you replace them.</div>
     </div>
-    <div class="fac"><label for="factory">Factory in</label><select id="factory"></select></div>
+    <div class="topctl">
+      <div class="fac"><label for="factory">Factory</label><select id="factory"></select></div>
+      <a class="btn" id="driverLink" href="https://claude.ai/artifact/8mapzGqrbXd13L1B5763Wv#driver" target="_blank" rel="noopener">Driver page ↗</a>
+      <button class="btn" id="copyDriver" type="button">Copy driver link</button>
+      <span id="dataMode" class="pill plain" title="Where jobs and truck positions are kept"></span>
+    </div>
   </header>
+
+  <div id="kpis" class="kpis"></div>
 
   <nav class="tabs" role="tablist" aria-label="Sections">
     <button role="tab" id="t-live" data-tab="live" aria-selected="true">Live fleet</button>
-    <button role="tab" id="t-backhaul" data-tab="backhaul" aria-selected="false">Return-trip jobs</button>
-    <button role="tab" id="t-costs" data-tab="costs" aria-selected="false">Costs &amp; maintenance</button>
-    <button role="tab" id="t-orders" data-tab="orders" aria-selected="false">Orders</button>
+    <button role="tab" id="t-jobs" data-tab="jobs" aria-selected="false">Jobs</button>
+    <button role="tab" id="t-costs" data-tab="costs" aria-selected="false">Maintenance costs</button>
   </nav>
-
-  <div id="kpis" class="kpis"></div>
 
   <!-- LIVE FLEET -->
   <section id="tab-live" class="stack" role="tabpanel" aria-labelledby="t-live">
     <div class="live-grid">
       <div class="card">
         <header>
-          <h2>Where the trucks are</h2>
+          <h2 id="mapTitle">Where the trucks are</h2>
           <div class="row">
+            <button class="btn sm" id="backBtn" type="button" hidden>All trucks</button>
             <button class="btn sm" id="fitBtn" type="button">Show whole peninsula</button>
-            <button class="btn sm" id="adv30" type="button">Move time on 30 min</button>
+            <button class="btn sm" id="adv30" type="button" title="Demo: move the sample trucks forward">Demo: +30 min</button>
             <button class="btn sm" id="adv120" type="button">+ 2 h</button>
           </div>
         </header>
         <div class="mapbox"><svg id="map" role="img" aria-label="Schematic map of truck positions"></svg></div>
-        <div class="legend" style="margin-top:10px">
-          <span><i class="dot s-outbound"></i>Delivering bricks</span>
-          <span><i class="dot s-unloading"></i>Unloading</span>
-          <span><i class="dot s-returning"></i>Empty, heading home</span>
-          <span><i class="dot s-factory"></i>At factory</span>
-          <span>Dashed ring = last ping is old</span>
-        </div>
+        <div class="legend" id="legend"></div>
+        <p class="small muted" style="margin-top:8px">Schematic map. Distances are straight-line × 1.3 and times are distance ÷ average speed plus loading time, not Google route times.</p>
       </div>
-      <div class="card">
-        <header><h2>Trucks</h2><span class="muted small" id="pingSummary"></span></header>
-        <div id="truckList" class="tlist"></div>
-      </div>
-    </div>
-
-    <div class="split">
-      <div class="card" id="truckDetail"></div>
-      <div class="card">
-        <header><h3>Driver check-in</h3></header>
-        <form id="ciForm" class="stack" style="gap:12px">
-          <div class="grid-fields">
-            <label class="fld"><span>Truck</span><select id="ci-truck"></select></label>
-            <label class="fld"><span>Town</span><select id="ci-town"></select></label>
-            <label class="fld"><span>Or latitude</span><input type="text" id="ci-lat" inputmode="decimal" placeholder="e.g. 2.7258"></label>
-            <label class="fld"><span>Or longitude</span><input type="text" id="ci-lon" inputmode="decimal" placeholder="e.g. 101.9381"></label>
-          </div>
-          <div class="row"><button class="btn primary" type="submit">Record position</button><span id="ciMsg" class="muted small" role="status"></span></div>
-          <p class="small muted">This page cannot read a phone's GPS, so a position is entered here for now. In the hosted version the driver's phone sends it every few minutes and a missed ping shows as a delayed truck.</p>
-        </form>
-      </div>
+      <div class="card" id="side"></div>
     </div>
   </section>
 
-  <!-- RETURN-TRIP JOBS -->
-  <section id="tab-backhaul" class="stack" role="tabpanel" aria-labelledby="t-backhaul" hidden>
+  <!-- JOBS -->
+  <section id="tab-jobs" class="stack" role="tabpanel" aria-labelledby="t-jobs" hidden>
     <div class="card">
-      <header><h2>Matching rules</h2><span class="muted small">A job is offered only if the truck can carry it and the detour stays inside these limits.</span></header>
+      <header>
+        <h2>Return-trip jobs</h2>
+        <div class="row">
+          <button class="btn primary" id="openAdd" type="button">Add or import jobs</button>
+          <button class="btn" id="openBoard" type="button">Jobs on the board</button>
+        </div>
+      </header>
+      <div class="row" style="margin-bottom:14px; align-items:flex-end">
+        <label class="fld" style="max-width:220px"><span>Plan for (7 days either side of today)</span><input type="date" id="planDate"></label>
+        <button class="btn" id="planToday" type="button">Today</button>
+        <span id="planNote" class="hint"></span>
+      </div>
       <div id="matchGrid" class="grid-fields"></div>
+      <p class="small muted" style="margin-top:10px">A truck can take several jobs. A job is suggested only if the whole plan fits the truck at every stop, both places sit inside the corridor along the way home, the pick-up is ahead of the truck, the extra driving stays inside these limits and the price covers the extra cost.</p>
     </div>
     <div class="card">
       <header>
@@ -238,13 +270,13 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; width: 100%; }
       <div id="suggestions" class="scroll"></div>
     </div>
     <div class="card">
-      <header><h2>Approved</h2></header>
+      <header><h2>Accepted jobs</h2></header>
       <div id="approved" class="scroll"></div>
     </div>
     <div class="card">
       <header>
         <h2>All options for one truck</h2>
-        <label class="fld" style="min-width:200px"><span>Truck</span><select id="opt-truck"></select></label>
+        <label class="fld" style="min-width:240px"><span>Truck</span><select id="opt-truck"></select></label>
       </header>
       <div id="options" class="scroll"></div>
     </div>
@@ -269,79 +301,115 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; width: 100%; }
       <div id="maintTable" class="scroll"></div>
     </div>
   </section>
+</div>
 
-  <!-- ORDERS -->
-  <section id="tab-orders" class="stack" role="tabpanel" aria-labelledby="t-orders" hidden>
-    <div class="split">
-      <div class="card">
-        <header><h2>Add one job</h2></header>
-        <form id="orderForm" class="stack" style="gap:12px">
-          <div class="grid-fields">
-            <label class="fld"><span>Pick-up town</span><select id="of-pick" required></select></label>
-            <label class="fld"><span>Drop-off town</span><select id="of-drop" required></select></label>
-            <label class="fld"><span>Pallets</span><input type="number" id="of-pal" min="1" step="1" value="10" required></label>
-            <label class="fld"><span>Weight (tonnes)</span><input type="number" id="of-ton" min="0.1" step="0.1" value="8" required></label>
-            <label class="fld"><span>Price (RM)</span><input type="number" id="of-rate" min="0" step="10" value="600" required></label>
-            <label class="fld"><span>Cargo</span><input type="text" id="of-cargo" placeholder="e.g. roof tiles"></label>
-            <label class="fld"><span>Height (m)</span><input type="number" id="of-h" min="0" step="0.1" placeholder="1.5"></label>
-            <label class="fld"><span>Width (m)</span><input type="number" id="of-w" min="0" step="0.1" placeholder="2.4"></label>
-            <label class="fld"><span>Depth / length (m)</span><input type="number" id="of-d" min="0" step="0.1" placeholder="7.2"></label>
-            <label class="fld"><span>Volume (m³), worked out from the three sizes</span><input type="number" id="of-cbm" min="0" step="0.1" placeholder="25.9"></label>
-            <label class="fld"><span>Exact pick-up (optional)</span><input type="text" id="of-pickll" placeholder="paste 3.1234, 101.5678"></label>
-            <label class="fld"><span>Exact drop-off (optional)</span><input type="text" id="of-dropll" placeholder="paste 3.1234, 101.5678"></label>
-          </div>
-          <div class="row"><button class="btn primary" type="submit">Add job</button><span id="ofMsg" class="muted small" role="status"></span></div>
-          <p class="small muted">Towns come from a built-in list. For a street-level spot, copy the coordinates from Google Maps or Waze and paste them into the exact fields.</p>
-        </form>
+<!-- DRIVER PAGE (opens from the link ending in #driver) -->
+<div class="app" id="drv" hidden style="max-width:560px">
+  <header class="top">
+    <div class="brand"><h1>Driver page</h1><div class="sub">Keep this page open while you drive. It sends your truck's position to the dispatcher.</div></div>
+    <span id="d-mode" class="pill plain"></span>
+  </header>
+  <div class="card stack" style="gap:14px">
+    <label class="fld"><span>Your truck</span><select id="d-truck"></select></label>
+    <div class="fld"><span>Trip status</span>
+      <div class="seg" id="d-status" role="group" aria-label="Trip status">
+        <button type="button" data-s="outbound" aria-pressed="false">Delivering bricks</button>
+        <button type="button" data-s="unloading" aria-pressed="false">Unloading</button>
+        <button type="button" data-s="returning" aria-pressed="true">Heading home</button>
+        <button type="button" data-s="factory" aria-pressed="false">At factory</button>
       </div>
-      <div class="card">
-        <header><h2>Import a list</h2></header>
-        <div class="stack" style="gap:12px">
-          <label class="fld"><span>CSV text, first row = headers (pickup, dropoff, pallets, tonnes, rate_rm, cargo, height_m, width_m, depth_m, cbm)</span>
-            <textarea id="csvText" spellcheck="false" placeholder="pickup,dropoff,pallets,tonnes,rate_rm,cargo"></textarea></label>
-          <div class="row">
-            <input type="file" id="csvFile" accept=".csv,text/csv,text/plain" style="width:auto">
-            <button class="btn" id="csvExample" type="button">Fill with example</button>
-            <button class="btn primary" id="csvRead" type="button">Review rows</button>
-          </div>
+    </div>
+    <div class="row"><button class="btn primary" id="d-share" type="button">Start sharing my location</button><span id="d-msg" class="muted small" role="status"></span></div>
+    <hr>
+    <div class="fld"><span>Or send a position by hand: a town, a Google Maps link or coordinates</span>
+      <div class="row" style="flex-wrap:nowrap"><input type="text" id="d-manual" list="townList" placeholder="e.g. Seremban, or 2.7258, 101.9381"><button class="btn" id="d-send" type="button">Send</button></div>
+      <div class="hint" id="d-manualHint"></div>
+    </div>
+    <div id="d-last" class="muted small"></div>
+  </div>
+  <div class="card"><header><h2>Your accepted jobs</h2></header><div id="d-jobs"></div></div>
+</div>
+
+<datalist id="townList"></datalist>
+
+<!-- JOBS SHEET -->
+<dialog id="jobsDlg" aria-labelledby="dlgTitle">
+  <div class="dhead"><h2 id="dlgTitle">Jobs</h2><button class="btn sm" id="dlgClose" type="button">Close</button></div>
+  <div class="dtabs" role="tablist">
+    <button role="tab" id="dt-add" data-dt="add" aria-selected="true">Add job</button>
+    <button role="tab" id="dt-board" data-dt="board" aria-selected="false">Jobs on the board</button>
+  </div>
+  <div class="dbody">
+    <div id="dp-add" class="stack">
+      <div class="seg" id="addMode" role="group" aria-label="How to add">
+        <button type="button" data-m="manual" aria-pressed="true">Enter by hand</button>
+        <button type="button" data-m="import" aria-pressed="false">Import a list</button>
+      </div>
+
+      <form id="orderForm" class="stack" style="gap:12px">
+        <div class="grid-fields">
+          <label class="fld wide"><span>Pick-up: town, Google Maps link or coordinates</span><input type="text" id="of-pick" list="townList" placeholder="e.g. Seremban, or paste a Google Maps link" autocomplete="off"><div class="hint" id="of-pickHint"></div></label>
+          <label class="fld wide"><span>Drop-off: town, Google Maps link or coordinates</span><input type="text" id="of-drop" list="townList" placeholder="e.g. Rawang, or 3.3213, 101.5741" autocomplete="off"><div class="hint" id="of-dropHint"></div></label>
+          <label class="fld"><span>How is the load measured?</span>
+            <select id="of-lm"><option value="pallets">Pallets</option><option value="dims">Length × width × height</option><option value="volume">Volume (m³)</option></select></label>
+          <label class="fld lm lm-pallets"><span>Pallets</span><input type="number" id="of-pal" min="1" step="1" value="10"></label>
+          <label class="fld lm lm-dims" hidden><span>Length (m)</span><input type="number" id="of-l" min="0" step="0.1" placeholder="7.2"></label>
+          <label class="fld lm lm-dims" hidden><span>Width (m)</span><input type="number" id="of-w" min="0" step="0.1" placeholder="2.4"></label>
+          <label class="fld lm lm-dims" hidden><span>Height (m)</span><input type="number" id="of-h" min="0" step="0.1" placeholder="1.5"></label>
+          <label class="fld lm lm-volume" hidden><span>Volume (m³)</span><input type="number" id="of-cbm" min="0" step="0.1" placeholder="25"></label>
+          <label class="fld"><span>Weight (tonnes)</span><input type="number" id="of-ton" min="0.1" step="0.1" value="8"></label>
+          <label class="fld"><span>Price (RM)</span><input type="number" id="of-rate" min="0" step="10" value="600"></label>
+          <label class="fld"><span>Cargo</span><input type="text" id="of-cargo" placeholder="e.g. roof tiles"></label>
+          <label class="fld"><span>Job date (7 days before to 7 days ahead)</span><input type="date" id="of-date"></label>
+        </div>
+        <div class="hint" id="of-derived"></div>
+        <div class="row"><button class="btn primary" type="submit">Add job</button><span id="ofMsg" class="hint" role="status"></span></div>
+      </form>
+
+      <div id="importBox" class="stack" hidden>
+        <label class="fld"><span>CSV text, first row = headers (pickup, dropoff, pallets, tonnes, rate_rm, cargo, length_m, width_m, height_m, cbm). Pick-up and drop-off can be a town, a Google Maps link or coordinates.</span>
+          <textarea id="csvText" spellcheck="false" placeholder="pickup,dropoff,pallets,tonnes,rate_rm,cargo"></textarea></label>
+        <div class="row">
+          <input type="file" id="csvFile" accept=".csv,text/csv,text/plain" style="width:auto">
+          <button class="btn" id="csvExample" type="button">Fill with example</button>
+          <button class="btn primary" id="csvRead" type="button">Review rows</button>
+        </div>
+        <div id="photoBox" class="stack" style="gap:10px" hidden>
           <hr>
-          <div id="photoBox" class="stack" style="gap:10px" hidden>
-            <label class="fld"><span>Or a photo of handwritten jobs</span>
-              <input type="file" id="photoFile" accept="image/*"></label>
-            <div class="row"><img id="photoThumb" class="thumb" alt="Selected photo" hidden>
-              <button class="btn primary" id="photoRead" type="button" disabled>Read the photo</button>
-              <button class="btn" id="photoStop" type="button" hidden>Stop</button>
-              <span id="photoMsg" class="muted small" role="status"></span></div>
+          <label class="fld"><span>Or a photo of handwritten jobs</span><input type="file" id="photoFile" accept="image/*"></label>
+          <div class="row"><img id="photoThumb" class="thumb" alt="Selected photo" hidden>
+            <button class="btn primary" id="photoRead" type="button" disabled>Read the photo</button>
+            <button class="btn" id="photoStop" type="button" hidden>Stop</button>
+            <span id="photoMsg" class="muted small" role="status"></span></div>
+        </div>
+        <div id="reviewCard" hidden class="stack" style="gap:10px">
+          <hr>
+          <div class="row" style="justify-content:space-between"><h3>Check before adding</h3><span class="muted small" id="reviewSrc"></span></div>
+          <div id="review" class="scroll"></div>
+          <div class="row">
+            <button class="btn primary" id="reviewAdd" type="button">Add ticked rows</button>
+            <button class="btn" id="reviewCancel" type="button">Discard</button>
+            <span id="reviewMsg" class="hint" role="status"></span>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="card" id="reviewCard" hidden>
-      <header><h2>Check before adding</h2><span class="muted small" id="reviewSrc"></span></header>
-      <div id="review" class="scroll"></div>
-      <div class="row" style="margin-top:12px">
-        <button class="btn primary" id="reviewAdd" type="button">Add ticked rows</button>
-        <button class="btn" id="reviewCancel" type="button">Discard</button>
-        <span id="reviewMsg" class="muted small" role="status"></span>
-      </div>
-    </div>
-
-    <div class="card">
-      <header><h2>Jobs on the board</h2>
-        <div class="row"><button class="btn sm" id="clearSample" type="button">Remove sample jobs</button><button class="btn sm danger" id="resetAll" type="button">Reset everything</button></div>
-      </header>
+    <div id="dp-board" class="stack" hidden>
+      <div class="row"><button class="btn sm" id="loadSamples" type="button">Load sample jobs</button><button class="btn sm" id="clearSample" type="button">Remove sample jobs</button><span id="boardMsg" class="hint" role="status"></span></div>
       <div id="orderTable" class="scroll"></div>
     </div>
-  </section>
-</div>
+  </div>
+</dialog>
+<div id="toast" role="status" aria-live="polite" hidden></div>
 
 <script id="logic">
 /* ---------- pure logic (no DOM) ---------- */
+const FACTORIES = [{ n: 'Karak', lat: 3.397, lon: 102.054 }, { n: 'Johor Bahru', lat: 1.4927, lon: 103.7414 }];
 const TOWNS = [
   {n:'Kuala Lumpur',lat:3.139,lon:101.687,m:1},{n:'Petaling Jaya',lat:3.107,lon:101.607,m:1},{n:'Shah Alam',lat:3.073,lon:101.518,m:1},
   {n:'Klang',lat:3.044,lon:101.446,m:1},{n:'Rawang',lat:3.321,lon:101.574,m:1},{n:'Sungai Buloh',lat:3.207,lon:101.577},
-  {n:'Selayang',lat:3.265,lon:101.650},{n:'Kuala Selangor',lat:3.340,lon:101.250},{n:'Sabak Bernam',lat:3.770,lon:100.990},
+  {n:'Selayang',lat:3.265,lon:101.650},{n:'Gombak',lat:3.253,lon:101.724},{n:'Kuala Selangor',lat:3.340,lon:101.250},{n:'Sabak Bernam',lat:3.770,lon:100.990},
   {n:'Tanjung Malim',lat:3.683,lon:101.520},{n:'Slim River',lat:3.826,lon:101.402},{n:'Tapah',lat:4.195,lon:101.259},
   {n:'Ipoh',lat:4.597,lon:101.090,m:1},{n:'Teluk Intan',lat:4.025,lon:101.021},{n:'Sitiawan',lat:4.217,lon:100.696},
   {n:'Taiping',lat:4.850,lon:100.740},{n:'Butterworth',lat:5.399,lon:100.364},{n:'George Town',lat:5.414,lon:100.329,m:1},
@@ -350,92 +418,195 @@ const TOWNS = [
   {n:'Nilai',lat:2.815,lon:101.798},{n:'Seremban',lat:2.726,lon:101.938,m:1},{n:'Port Dickson',lat:2.522,lon:101.797},
   {n:'Tampin',lat:2.470,lon:102.230},{n:'Melaka',lat:2.196,lon:102.250,m:1},{n:'Muar',lat:2.045,lon:102.569},
   {n:'Segamat',lat:2.514,lon:102.815},{n:'Batu Pahat',lat:1.855,lon:102.933},{n:'Kluang',lat:2.030,lon:103.318},
-  {n:'Johor Bahru',lat:1.492,lon:103.741,m:1},{n:'Bentong',lat:3.522,lon:101.908},{n:'Temerloh',lat:3.450,lon:102.417},
-  {n:'Mentakab',lat:3.480,lon:102.350},{n:'Kuantan',lat:3.808,lon:103.326,m:1}
+  {n:'Yong Peng',lat:2.013,lon:103.065},{n:'Kulai',lat:1.657,lon:103.600},{n:'Skudai',lat:1.535,lon:103.657},{n:'Pontian',lat:1.486,lon:103.389},
+  {n:'Pasir Gudang',lat:1.470,lon:103.900},{n:'Kota Tinggi',lat:1.738,lon:103.899},
+  {n:'Johor Bahru',lat:1.492,lon:103.741,m:1},{n:'Bentong',lat:3.522,lon:101.908},{n:'Bukit Tinggi',lat:3.350,lon:101.830},
+  {n:'Karak',lat:3.397,lon:102.054,m:1},{n:'Temerloh',lat:3.450,lon:102.417},{n:'Mentakab',lat:3.480,lon:102.350},
+  {n:'Jerantut',lat:3.936,lon:102.364},{n:'Raub',lat:3.793,lon:101.857},{n:'Kuantan',lat:3.808,lon:103.326,m:1}
 ];
 const ALIAS = {kl:'Kuala Lumpur','k l':'Kuala Lumpur',pj:'Petaling Jaya',jb:'Johor Bahru',johor:'Johor Bahru',
   's buloh':'Sungai Buloh','sg buloh':'Sungai Buloh','p dickson':'Port Dickson',pd:'Port Dickson',malacca:'Melaka',
   'tg malim':'Tanjung Malim',penang:'George Town',georgetown:'George Town','kuala lumpur':'Kuala Lumpur'};
 const DEFAULTS = {
-  factory:'Rawang', roadFactor:1.3, speed:50, diesel:2.15, lphLoaded:40, lphEmpty:30, tyres:14, tyrePrice:1200, tyreLife:70000,
-  serviceCost:1800, serviceKm:15000, driverMonthly:3200, driverHours:260, handling:1,
-  maxPickup:40, maxExtraKm:80, maxExtraHours:4
+  factory: 'Karak', roadFactor: 1.3, speed: 50, diesel: 2.15, lphLoaded: 40, lphEmpty: 30, tyres: 14, tyrePrice: 1200, tyreLife: 70000,
+  serviceCost: 1800, serviceKm: 15000, driverMonthly: 3200, driverHours: 260,
+  corridor: 25, maxExtraKm: 100, maxExtraHours: 6, maxJobs: 4, stopBase: 20, perPallet: 1.5, palletCbm: 1.8
 };
-const RAD = Math.PI / 180;
+const RAD = Math.PI / 180, BEHIND = 10;
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const r1 = x => Math.round(x * 10) / 10;
+const pad2 = n => String(n).padStart(2, '0');
+const dstr = d => d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+const todayStr = () => dstr(new Date());
+const addDays = (s, n) => { const [y, m, d] = s.split('-').map(Number); return dstr(new Date(y, m - 1, d + n)); };
+const dayDiff = (a, b) => Math.round((new Date(a + 'T00:00') - new Date(b + 'T00:00')) / 864e5);
+const dateOk = s => /^\d{4}-\d{2}-\d{2}$/.test(s || '') && s >= addDays(todayStr(), -7) && s <= addDays(todayStr(), 7);
+function normDate(s) {
+  s = String(s || '').trim(); if (!s) return '';
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/); if (m) return m[1] + '-' + pad2(+m[2]) + '-' + pad2(+m[3]);
+  m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/); if (m) return m[3] + '-' + pad2(+m[2]) + '-' + pad2(+m[1]);
+  return s;
+}
+let PLAN_DATE = null; // day being planned; a job is offered from its date up to 7 days later. Jobs with no date are always offered.
+const jobDue = j => !j.date || !PLAN_DATE || (j.date <= PLAN_DATE && j.date >= addDays(PLAN_DATE, -7));
 const townByName = n => TOWNS.find(t => t.n === n);
-function ptOf(o, w) { const ll = w === 'pickup' ? o.pickupLL : o.dropLL; return ll || townByName(w === 'pickup' ? o.pickup : o.drop); }
-function parseLL(s) {
-  const m = String(s || '').match(/(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)/);
-  if (!m) return null;
-  const lat = +m[1], lon = +m[2];
-  return (lat >= 0.5 && lat <= 7 && lon >= 99 && lon <= 105) ? { lat, lon } : null;
-}
-function dimsOf(j) {
-  const p = v => v > 0 ? v : null, h = p(j.h), w = p(j.w), d = p(j.d);
-  const cbm = p(j.cbm) || (h && w && d ? Math.round(h * w * d * 10) / 10 : null);
-  return { h, w, d, cbm };
-}
+const factoryByName = n => FACTORIES.find(f => f.n === n) || FACTORIES[0];
+const townLoc = t => ({ label: t.n, lat: t.lat, lon: t.lon, kind: 'town' });
 function hav(a, b) {
   const dLat = (b.lat - a.lat) * RAD, dLon = (b.lon - a.lon) * RAD;
   const x = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * RAD) * Math.cos(b.lat * RAD) * Math.sin(dLon / 2) ** 2;
   return 6371 * 2 * Math.asin(Math.sqrt(x));
 }
 const road = (a, b, S) => hav(a, b) * S.roadFactor;
+function alongCross(a, b, p) {
+  const k = 111, c = Math.cos(a.lat * RAD);
+  const vx = (b.lon - a.lon) * k * c, vy = (b.lat - a.lat) * k, L = Math.hypot(vx, vy) || 1;
+  const qx = (p.lon - a.lon) * k * c, qy = (p.lat - a.lat) * k;
+  return { along: (qx * vx + qy * vy) / L, cross: Math.abs(qx * vy - qy * vx) / L, L };
+}
+function nearestTown(p) {
+  let best = TOWNS[0], bd = 1e9;
+  for (const t of TOWNS) { const d = hav(p, t); if (d < bd) { bd = d; best = t; } }
+  return { town: best, d: bd };
+}
+const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+function exactTown(text) {
+  const n = norm(text); if (!n) return null;
+  if (ALIAS[n]) return townByName(ALIAS[n]);
+  return TOWNS.find(t => norm(t.n) === n) || null;
+}
+function fuzzyTown(text) {
+  const e = exactTown(text); if (e) return e;
+  const n = norm(text); if (!n) return null;
+  for (const t of TOWNS) { const tn = norm(t.n); if (n.includes(tn) || (n.length >= 5 && tn.includes(n))) return t; }
+  return null;
+}
+const inMY = (lat, lon) => lat >= 0.5 && lat <= 7.5 && lon >= 99 && lon <= 105;
+function parseLocation(text, fuzzy) {
+  // Returns a location {label, lat, lon, kind}, {error}, or null.
+  const raw = String(text || '').trim(); if (!raw) return null;
+  const tw = exactTown(raw) || (fuzzy ? fuzzyTown(raw) : null);
+  if (tw) return townLoc(tw);
+  let s = raw; try { s = decodeURIComponent(raw); } catch (e) {}
+  const pats = [/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/, /@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/,
+    /(?:[?&](?:ll|q|query|center|destination)=)(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/, /^\s*(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)\s*$/];
+  for (const re of pats) {
+    const m = s.match(re); if (!m) continue;
+    const lat = +m[1], lon = +m[2];
+    if (!inMY(lat, lon)) return { error: 'Those coordinates are outside Peninsular Malaysia.' };
+    const nt = nearestTown({ lat, lon });
+    return { label: 'Pin near ' + nt.town.n, lat: Math.round(lat * 1e5) / 1e5, lon: Math.round(lon * 1e5) / 1e5, kind: 'pin' };
+  }
+  if (/goo\.gl|maps\.app|g\.co\/kgs/i.test(raw)) return { error: 'A short link hides the coordinates. Open it in Google Maps, then copy the full link or the coordinates.' };
+  return { error: 'Not found. Choose a town from the list, or paste a Google Maps link or coordinates like 3.1234, 101.5678.' };
+}
 function perKm(S) {
-  const tyre = S.tyres * S.tyrePrice / S.tyreLife;
-  const svc = S.serviceCost / S.serviceKm;
+  const tyre = S.tyres * S.tyrePrice / S.tyreLife, svc = S.serviceCost / S.serviceKm;
   const fuelLoaded = S.lphLoaded / 100 * S.diesel, fuelEmpty = S.lphEmpty / 100 * S.diesel;
   return { tyre, svc, fuelLoaded, fuelEmpty, loaded: fuelLoaded + tyre + svc, empty: fuelEmpty + tyre + svc };
 }
 const driverHr = S => S.driverMonthly / S.driverHours;
-function evalMatch(pos, truck, order, S, F) {
-  const pk = ptOf(order, 'pickup'), dp = ptOf(order, 'drop');
-  const c = perKm(S), dh = driverHr(S);
-  const toPick = road(pos, pk, S), loadedLeg = road(pk, dp, S), home = road(dp, F, S), base = road(pos, F, S);
-  const totalKm = toPick + loadedLeg + home;
-  const hours = totalKm / S.speed + 2 * S.handling;
-  const cost = (toPick + home) * c.empty + loadedLeg * c.loaded + hours * dh;
-  const baseCost = base * c.empty + base / S.speed * dh;
-  const extraKm = totalKm - base, extraHours = hours - base / S.speed, extraCost = cost - baseCost;
-  const net = order.rate - extraCost;
-  const reasons = [];
-  if (order.pallets > truck.pallets) reasons.push('Over pallet limit (' + truck.pallets + ')');
-  if (order.tonnes > truck.payload) reasons.push('Over payload (' + truck.payload + ' t)');
-  if (order.cbm > truck.volume) reasons.push('Over volume (' + truck.volume + ' m³)');
-  if (order.w > truck.bedW) reasons.push('Too wide (bed ' + truck.bedW + ' m)');
-  if (order.d > truck.bedL) reasons.push('Too long (bed ' + truck.bedL + ' m)');
-  if (order.h > truck.maxH) reasons.push('Too tall (limit ' + truck.maxH + ' m)');
-  if (toPick > S.maxPickup) reasons.push('Pick-up ' + Math.round(toPick) + ' km away');
-  if (extraKm > S.maxExtraKm) reasons.push('Adds ' + Math.round(extraKm) + ' km');
-  if (extraHours > S.maxExtraHours) reasons.push('Adds ' + extraHours.toFixed(1) + ' h');
-  if (net <= 0) reasons.push('Price does not cover extra cost');
-  return { ok: reasons.length === 0, reasons, toPick, loadedLeg, home, base, totalKm, extraKm, extraHours, hours, cost, baseCost, extraCost, net, revenue: order.rate };
+const svcMinutes = (pallets, S) => S.stopBase + pallets * S.perPallet;
+
+function deriveLoad(x, S) {
+  const p = x.pallets > 0 ? +x.pallets : null, L = x.l > 0 ? +x.l : null, W = x.w > 0 ? +x.w : null, H = x.h > 0 ? +x.h : null;
+  let cbm = x.cbm > 0 ? +x.cbm : null, mode;
+  if (L && W && H) { cbm = r1(L * W * H); mode = 'dims'; }
+  else if (cbm) mode = 'volume';
+  else if (p) { mode = 'pallets'; cbm = r1(p * S.palletCbm); }
+  else return null;
+  return { mode, pallets: p || Math.max(1, Math.ceil(cbm / S.palletCbm)), cbm, l: L, w: W, h: H };
 }
-function suggestAll(cands, orders, S, F) {
-  // cands: [{truck, pos}]; orders: open orders. Greedy by net margin, one job per truck.
-  const pairs = [];
-  for (const c of cands) for (const o of orders) {
-    const m = evalMatch(c.pos, c.truck, o, S, F);
-    if (m.ok) pairs.push({ truck: c.truck, order: o, m });
+function jobFits(pos, truck, j, S, F) {
+  const r = [];
+  if (j.pallets > truck.pallets) r.push('Over pallet limit (' + truck.pallets + ')');
+  if (j.tonnes > truck.payload) r.push('Over payload (' + truck.payload + ' t)');
+  if (j.cbm > truck.volume) r.push('Over volume (' + truck.volume + ' m³)');
+  if (j.l > truck.bedL) r.push('Too long (bed ' + truck.bedL + ' m)');
+  if (j.w > truck.bedW) r.push('Too wide (bed ' + truck.bedW + ' m)');
+  if (j.h > truck.maxH) r.push('Too tall (limit ' + truck.maxH + ' m)');
+  const a = alongCross(pos, F, j.pickup), b = alongCross(pos, F, j.drop);
+  if (S.corridor > 0) {
+    if (a.along < -BEHIND) r.push('Pick-up is behind the truck');
+    else if (a.cross > S.corridor) r.push('Pick-up ' + Math.round(a.cross) + ' km off route');
+    if (b.cross > S.corridor) r.push('Drop-off ' + Math.round(b.cross) + ' km off route');
+    if (b.along < a.along - BEHIND) r.push('Drop-off is back the way the truck came');
   }
-  pairs.sort((a, b) => b.m.net - a.m.net);
-  const usedT = new Set(), usedO = new Set(), out = [];
-  for (const p of pairs) {
-    if (usedT.has(p.truck.id) || usedO.has(p.order.id)) continue;
-    usedT.add(p.truck.id); usedO.add(p.order.id); out.push(p);
+  return { reasons: r, pkOff: a.cross, dpOff: b.cross };
+}
+function planRoute(pos, F, jobs, truck, S) {
+  const c = perKm(S), dh = driverHr(S), stops = [];
+  for (const j of jobs) {
+    const a = alongCross(pos, F, j.pickup).along, b = alongCross(pos, F, j.drop).along;
+    stops.push({ kind: 'pickup', job: j, loc: j.pickup, key: a, ord: 0 });
+    stops.push({ kind: 'drop', job: j, loc: j.drop, key: Math.max(a, b), ord: 1 });
+  }
+  stops.sort((x, y) => x.key - y.key || x.ord - y.ord);
+  let cur = pos, t = 0, km = 0, driveMin = 0, svcMin = 0, cost = 0, revenue = 0;
+  const load = { p: 0, c: 0, t: 0 }, peak = { p: 0, c: 0, t: 0 };
+  for (const s of stops) {
+    const d = road(cur, s.loc, S), dm = d / S.speed * 60;
+    cost += d * (load.p > 0 || load.t > 0 ? c.loaded : c.empty);
+    km += d; driveMin += dm; t += dm; s.legKm = d; s.legMin = dm; s.arrive = t;
+    const sm = svcMinutes(s.job.pallets, S); svcMin += sm; t += sm; s.service = sm; s.depart = t;
+    const sg = s.kind === 'pickup' ? 1 : -1;
+    load.p += sg * s.job.pallets; load.c += sg * s.job.cbm; load.t += sg * s.job.tonnes;
+    if (s.kind === 'pickup') revenue += +s.job.rate || 0;
+    s.load = { p: Math.max(0, load.p), c: Math.max(0, load.c), t: Math.max(0, load.t) };
+    peak.p = Math.max(peak.p, load.p); peak.c = Math.max(peak.c, load.c); peak.t = Math.max(peak.t, load.t);
+    cur = s.loc;
+  }
+  const dEnd = road(cur, F, S), mEnd = dEnd / S.speed * 60;
+  cost += dEnd * c.empty; km += dEnd; driveMin += mEnd; t += mEnd;
+  cost += (driveMin + svcMin) / 60 * dh;
+  const baseKm = road(pos, F, S), baseMin = baseKm / S.speed * 60, baseCost = baseKm * c.empty + baseKm / S.speed * dh;
+  const over = [];
+  if (peak.p > truck.pallets) over.push('pallets'); if (peak.c > truck.volume + 1e-9) over.push('volume'); if (peak.t > truck.payload) over.push('weight');
+  return { stops, km, driveMin, svcMin, totalMin: t, endLegKm: dEnd, endLegMin: mEnd, baseKm, baseMin, extraKm: km - baseKm,
+    extraHours: (driveMin + svcMin - baseMin) / 60, extraCost: cost - baseCost, cost, baseCost, revenue, net: revenue - (cost - baseCost), peak, over, fit: over.length === 0, jobCount: jobs.length };
+}
+function evaluateAdd(ctx, cur, job, S, F) {
+  const f = jobFits(ctx.pos, ctx.truck, job, S, F), reasons = f.reasons.slice();
+  if (!jobDue(job)) reasons.unshift(job.date > PLAN_DATE ? 'Dated ' + job.date + ', after the planned day' : 'Dated ' + job.date + ', over 7 days before the planned day');
+  const base = planRoute(ctx.pos, F, cur, ctx.truck, S), plan = planRoute(ctx.pos, F, cur.concat([job]), ctx.truck, S);
+  if (cur.length + 1 > S.maxJobs) reasons.push('Truck already has ' + S.maxJobs + ' jobs');
+  if (!plan.fit && !reasons.some(x => /^Over /.test(x))) reasons.push('Truck would be over ' + plan.over.join(' and ') + ' at one stop');
+  if (plan.extraKm > S.maxExtraKm) reasons.push('Plan adds ' + Math.round(plan.extraKm) + ' km');
+  if (plan.extraHours > S.maxExtraHours) reasons.push('Plan adds ' + plan.extraHours.toFixed(1) + ' h');
+  const gain = plan.net - base.net;
+  if (gain <= 0) reasons.push('Price does not cover extra cost');
+  return { ok: reasons.length === 0, reasons, plan, base, gain, pkOff: f.pkOff, dpOff: f.dpOff };
+}
+function buildPlans(items, jobs, assign, S, F) {
+  const open = jobs.filter(j => !j.done && !assign[j.id] && jobDue(j)), taken = new Set(), out = {};
+  for (const it of items) {
+    const acc = jobs.filter(j => !j.done && assign[j.id] === it.truck.id);
+    out[it.truck.id] = { it, accepted: acc, suggested: [], cur: acc.slice() };
+  }
+  for (let guard = 0; guard < 200; guard++) {
+    let best = null;
+    for (const it of items) {
+      if (!it.eligible) continue;
+      const o = out[it.truck.id];
+      for (const j of open) {
+        if (taken.has(j.id)) continue;
+        const ev = evaluateAdd(it, o.cur, j, S, F);
+        if (ev.ok && (!best || ev.gain > best.ev.gain)) best = { o, j, ev };
+      }
+    }
+    if (!best) break;
+    best.o.suggested.push({ job: best.j, ev: best.ev }); best.o.cur.push(best.j); taken.add(best.j.id);
+  }
+  for (const it of items) {
+    const o = out[it.truck.id];
+    o.planAccepted = planRoute(it.pos, F, o.accepted, it.truck, S);
+    o.planAll = planRoute(it.pos, F, o.cur, it.truck, S);
   }
   return out;
 }
-const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
-function matchTown(text) {
-  const n = norm(text);
-  if (!n) return null;
-  if (ALIAS[n]) return ALIAS[n];
-  for (const t of TOWNS) if (norm(t.n) === n) return t.n;
-  for (const t of TOWNS) { const tn = norm(t.n); if (n.includes(tn) || (n.length >= 5 && tn.includes(n))) return t.n; }
-  return null;
-}
+const fmtMin = m => { m = Math.round(m); if (m < 60) return m + ' min'; const h = Math.floor(m / 60), r = m % 60; return h + ' h ' + String(r).padStart(2, '0') + ' min'; };
+
+/* CSV */
 function parseCSV(text) {
   const rows = []; let row = [], cur = '', q = false;
   for (let i = 0; i < text.length; i++) {
@@ -450,61 +621,52 @@ function parseCSV(text) {
   return rows;
 }
 function csvToJobs(text) {
-  const rows = parseCSV(text);
-  if (!rows.length) return [];
-  const head = rows[0].map(h => norm(h));
-  const find = (...keys) => head.findIndex(h => keys.some(k => h.includes(k)));
+  const rows = parseCSV(text); if (!rows.length) return [];
+  const head = rows[0].map(h => norm(h)), find = (...k) => head.findIndex(h => k.some(x => h.includes(x)));
   let idx = { pickup: find('pick', 'from', 'origin'), drop: find('drop', 'deliver', 'destination'), pallets: find('pallet', 'plt'),
     tonnes: find('tonne', 'weight', 'ton'), rate: find('rate', 'price', 'rm', 'amount'), cargo: find('cargo', 'goods', 'item'),
-    h: find('height'), w: find('width'), d: find('depth', 'length'), cbm: find('cbm', 'm3', 'cubic', 'volume') };
+    l: find('length', 'depth'), w: find('width'), h: find('height'), cbm: find('cbm', 'm3', 'cubic', 'volume'), date: find('date') };
   let body = rows.slice(1);
-  if (idx.pickup < 0 || idx.drop < 0) { idx = { pickup: 0, drop: 1, pallets: 2, tonnes: 3, rate: 4, cargo: 5, h: 6, w: 7, d: 8, cbm: 9 }; body = rows; }
+  if (idx.pickup < 0 || idx.drop < 0) { idx = { pickup: 0, drop: 1, pallets: 2, tonnes: 3, rate: 4, cargo: 5, l: 6, w: 7, h: 8, cbm: 9, date: 10 }; body = rows; }
   const num = v => { const x = parseFloat(String(v || '').replace(/[^0-9.\-]/g, '')); return Number.isFinite(x) ? x : null; };
-  return body.map(r => ({
-    pickupText: (r[idx.pickup] || '').trim(), dropText: (r[idx.drop] || '').trim(),
-    pallets: idx.pallets >= 0 ? num(r[idx.pallets]) : null, tonnes: idx.tonnes >= 0 ? num(r[idx.tonnes]) : null,
-    rate: idx.rate >= 0 ? num(r[idx.rate]) : null, cargo: idx.cargo >= 0 ? (r[idx.cargo] || '').trim() : '',
-    h: idx.h >= 0 ? num(r[idx.h]) : null, w: idx.w >= 0 ? num(r[idx.w]) : null, d: idx.d >= 0 ? num(r[idx.d]) : null, cbm: idx.cbm >= 0 ? num(r[idx.cbm]) : null
-  })).filter(j => j.pickupText || j.dropText);
+  const g = (r, i) => i >= 0 ? (r[i] || '').trim() : '';
+  return body.map(r => ({ pickupText: g(r, idx.pickup), dropText: g(r, idx.drop), pallets: num(g(r, idx.pallets)), tonnes: num(g(r, idx.tonnes)), rate: num(g(r, idx.rate)),
+    cargo: g(r, idx.cargo), l: num(g(r, idx.l)), w: num(g(r, idx.w)), h: num(g(r, idx.h)), cbm: num(g(r, idx.cbm)), date: normDate(g(r, idx.date)) })).filter(j => j.pickupText || j.dropText);
 }
+
+/* sample data */
 function rngFor(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-const BED = { 20: 9.8, 24: 12.2, 28: 13.7 };
 const NAMES = ['Hafiz','Ah Kow','Suresh','Zulkifli','Mohan','Ah Seng','Razak','Kumar','Faizal','Ah Beng','Ramesh','Shahrul','Lim','Amir','Kannan','Roslan'];
+const PLATE_PREFIX = ['BQL', 'JTD', 'CDM', 'WWE', 'AGP', 'JSB', 'BNK', 'CBC', 'PKM', 'DBR'];
+const BED = { 20: 9.8, 24: 12.2, 28: 13.7 };
 function initFleet(S, F, seed) {
-  const r = rngFor(seed), pool = TOWNS.filter(t => { const d = road(F, t, S); return d >= 40 && d <= 300; });
-  const pick = a => a[Math.floor(r() * a.length)];
-  const trucks = [];
+  const idr = rngFor(seed + 1), r = rngFor(seed), pool = TOWNS.filter(t => { const d = road(F, t, S); return d >= 40 && d <= 300; });
+  const pick = a => a[Math.floor(r() * a.length)], trucks = [];
   for (let i = 0; i < 16; i++) {
-    const x = r(), state = x < .3 ? 'outbound' : x < .45 ? 'unloading' : x < .85 ? 'returning' : 'factory';
-    const cap = [20, 24, 28][Math.floor(r() * 3)];
-    const delayed = r() < .2;
-    trucks.push({
-      id: 'T' + String(i + 1).padStart(2, '0'), driver: NAMES[i], pallets: cap, payload: cap - 2,
-      bedL: BED[cap], bedW: 2.4, maxH: 2.5, volume: Math.round(BED[cap] * 2.4 * 2.5 * 10) / 10,
-      state, dest: pick(pool).n, p: .1 + r() * .8, wait: state === 'unloading' ? 10 + Math.floor(r() * 50) : state === 'factory' ? 20 + Math.floor(r() * 60) : 0,
-      pingAgo: delayed ? 12 + Math.floor(r() * 80) : Math.floor(r() * 4), rep: null,
-      odo: 90000 + Math.floor(r() * 330000), kmSvc: Math.floor(r() * 16500), tyreKm: Math.floor(r() * 75000),
-      mtdKm: 1800 + Math.floor(r() * 4200), mtdEmpty: 0
-    });
-    const t = trucks[i]; t.mtdEmpty = Math.round(t.mtdKm * (.38 + r() * .14));
+    const cap = [20, 24, 28][Math.floor(idr() * 3)], plate = PLATE_PREFIX[Math.floor(idr() * PLATE_PREFIX.length)] + ' ' + String(1000 + Math.floor(idr() * 9000));
+    const x = r(), state = x < .3 ? 'outbound' : x < .45 ? 'unloading' : x < .85 ? 'returning' : 'factory', delayed = r() < .2;
+    const t = { id: 'T' + String(i + 1).padStart(2, '0'), plate, driver: NAMES[i], pallets: cap, payload: cap - 2, bedL: BED[cap], bedW: 2.4, maxH: 2.5,
+      volume: r1(BED[cap] * 2.4 * 2.5), state, dest: pick(pool).n, p: .1 + r() * .8, wait: state === 'unloading' ? 10 + Math.floor(r() * 50) : state === 'factory' ? 20 + Math.floor(r() * 60) : 0,
+      pingAgo: delayed ? 12 + Math.floor(r() * 80) : Math.floor(r() * 4), odo: 90000 + Math.floor(r() * 330000), kmSvc: Math.floor(r() * 16500), tyreKm: Math.floor(r() * 75000), mtdKm: 1800 + Math.floor(r() * 4200), mtdEmpty: 0 };
+    t.mtdEmpty = Math.round(t.mtdKm * (.38 + r() * .14)); trucks.push(t);
   }
   return trucks;
 }
-function seedOrders(S, F, seed) {
-  const r = rngFor(seed + 99), pick = a => a[Math.floor(r() * a.length)];
-  const picks = TOWNS.filter(t => { const d = road(F, t, S); return d >= 40 && d <= 280; });
-  const drops = TOWNS.filter(t => road(F, t, S) <= 60);
-  const cargo = ['Roof tiles','Cement bags','Timber','Steel bars','Ceramic tiles','Concrete blocks','Packaged food','Sand bags','Fertiliser sacks'];
-  const out = [];
-  for (let i = 0; i < 14; i++) {
-    let a = pick(picks), b = pick(drops); if (a.n === b.n) b = pick(drops);
-    const pal = 4 + Math.floor(r() * 19), ton = Math.round(pal * (0.5 + r() * .4) * 10) / 10;
-    const rate = Math.round((road(a, b, S) * 3.3 + 120 + r() * 160) / 10) * 10;
-    const w = pal <= 9 && r() < .5 ? 1.2 : 2.4, d = Math.round(Math.ceil(pal / (w / 1.2)) * 1.2 * 10) / 10, h = Math.round((1 + r() * 1.4) * 10) / 10;
-    out.push({ id: 'S-' + String(i + 1).padStart(2, '0'), pickup: a.n, drop: b.n, pallets: pal, tonnes: ton, rate, cargo: pick(cargo), h, w, d, cbm: Math.round(w * d * h * 10) / 10, source: 'Sample', done: false });
+function seedJobs(F, tag, seed) {
+  const r = rngFor(seed), pick = a => a[Math.floor(r() * a.length)], S = DEFAULTS;
+  const cargo = ['Roof tiles', 'Cement bags', 'Timber', 'Steel bars', 'Ceramic tiles', 'Concrete blocks', 'Packaged food', 'Sand bags', 'Fertiliser sacks'];
+  const pool = TOWNS.filter(t => { const d = road(F, t, S); return d >= 35 && d <= 260; }), out = [];
+  for (let guard = 0; out.length < 12 && guard < 300; guard++) {
+    const a = pick(pool), dd = road(a, F, S);
+    const drops = TOWNS.filter(t => { if (t.n === a.n) return false; const ac = alongCross(a, F, t); return road(t, F, S) < dd - 20 && ac.cross <= 20 && ac.along > 0; });
+    if (!drops.length) continue;
+    const b = pick(drops), pal = 4 + Math.floor(r() * 19), w = pal <= 9 && r() < .5 ? 1.2 : 2.4, rows = Math.ceil(pal / (w / 1.2)), l = rows, h = r1(1 + r() * 1.4);
+    out.push({ id: 'S-' + tag + String(out.length + 1).padStart(2, '0'), pickup: townLoc(a), drop: townLoc(b), mode: 'pallets', pallets: pal, l, w, h, cbm: r1(l * w * h),
+      tonnes: r1(pal * (0.5 + r() * .4)), rate: Math.round((road(a, b, S) * 3.3 + 120 + r() * 160) / 10) * 10, cargo: pick(cargo), source: 'Sample', done: false });
   }
   return out;
 }
+const sampleJobsAll = () => seedJobs(FACTORIES[0], 'K', 23).concat(seedJobs(FACTORIES[1], 'J', 23));
 </script>
 
 <script id="ui">
@@ -513,65 +675,113 @@ const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const LS = {
-  get(k, d) { try { const v = localStorage.getItem('bfd.' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
-  set(k, v) { try { localStorage.setItem('bfd.' + k, JSON.stringify(v)); } catch (e) {} }
+  get(k, d) { try { const v = localStorage.getItem('bfd2.' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('bfd2.' + k, JSON.stringify(v)); } catch (e) {} }
 };
 const rm = n => 'RM ' + Math.round(n).toLocaleString('en-MY');
 const km = n => Math.round(n).toLocaleString('en-MY') + ' km';
 const SEED = 7;
+const STATE_LABEL = { outbound: 'Delivering bricks', unloading: 'Unloading', returning: 'Empty, heading home', factory: 'At factory' };
+const COLLS = ['jobs', 'assign', 'pings'];
 
 let S = Object.assign({}, DEFAULTS, LS.get('settings', {}));
-if (!townByName(S.factory)) S.factory = DEFAULTS.factory;
-let F = townByName(S.factory);
+if (!FACTORIES.some(f => f.n === S.factory)) S.factory = DEFAULTS.factory;
+let F = factoryByName(S.factory);
 let trucks = initFleet(S, F, SEED);
-let orders = LS.get('orders', null) || seedOrders(S, F, SEED);
-let approvals = LS.get('approvals', {});
-let seq = LS.get('seq', 1);
-let selected = null, fit = true, tab = LS.get('tab', 'live'), review = null;
+let M = null, selected = null, fitAll = true, tab = LS.get('tab', 'live'), review = null, dlgTab = 'add', addMode = 'manual';
+let toastT = null;
+PLAN_DATE = todayStr();
 
-const save = () => { LS.set('settings', S); LS.set('orders', orders); LS.set('approvals', approvals); LS.set('seq', seq); };
-const STATE_LABEL = { outbound: 'Delivering bricks', unloading: 'Unloading', returning: 'Empty, heading home', factory: 'At factory' };
+function notify(msg) {
+  const el = $('#toast'), host = $('#jobsDlg').open ? $('#jobsDlg') : document.body;
+  if (el.parentNode !== host) host.appendChild(el);
+  el.textContent = msg; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { el.hidden = true; }, 4500);
+}
+const saveSettings = () => LS.set('settings', S);
 
-/* ---------- positions ---------- */
-const lerp = (a, b, p) => ({ lat: a.lat + (b.lat - a.lat) * p, lon: a.lon + (b.lon - a.lon) * p });
-function posAt(t, back) {
-  const dest = townByName(t.dest) || F, rk = Math.max(road(F, dest, S), 1), dp = S.speed * back / 60 / rk;
-  if (t.state === 'outbound') return lerp(F, dest, clamp(t.p - dp, 0, 1));
-  if (t.state === 'returning') return lerp(dest, F, clamp(t.p - dp, 0, 1));
-  return t.state === 'unloading' ? dest : F;
+/* ---------- data store: shared database when available, this browser otherwise ---------- */
+const store = {
+  mode: 'local', db: null, ready: false, data: { jobs: {}, assign: {}, pings: {} }, onChange: () => {},
+  loadLocal() { for (const c of COLLS) this.data[c] = LS.get('c.' + c, {}); },
+  persist(c) { if (this.mode === 'local') LS.set('c.' + c, this.data[c]); },
+  async init() {
+    this.loadLocal(); this.onChange();
+    let db = null;
+    try { db = window.claude && window.claude.use ? await window.claude.use('db') : null; } catch (e) { db = null; }
+    if (db) {
+      this.db = db; this.mode = 'db'; this.data = { jobs: {}, assign: {}, pings: {} };
+      for (const c of COLLS) {
+        db.collection(c).onSnapshot(snap => { const o = {}; snap.docs.forEach(d => { o[d.id] = d.data(); }); this.data[c] = o; this.ready = true; this.onChange(); },
+          e => { this.err = e && e.code; this.onChange(); });
+      }
+    } else if (!Object.keys(this.data.jobs).length && !LS.get('seeded', false)) {
+      for (const j of sampleJobsAll()) { const { id, ...rest } = j; this.data.jobs[id] = rest; }
+      this.persist('jobs'); LS.set('seeded', true); this.ready = true;
+    } else this.ready = true;
+    this.onChange();
+  },
+  async set(c, id, obj) {
+    if (this.mode === 'db') return this.db.collection(c).doc(id).set(obj);
+    this.data[c] = Object.assign({}, this.data[c], { [id]: obj }); this.persist(c); this.onChange();
+  },
+  async del(c, id) {
+    if (this.mode === 'db') return this.db.collection(c).doc(id).delete();
+    const o = Object.assign({}, this.data[c]); delete o[id]; this.data[c] = o; this.persist(c); this.onChange();
+  }
+};
+async function guarded(fn, what) {
+  try { await fn(); return true; }
+  catch (e) { notify(e && e.code === 'invalid_argument' ? "Your access level can't " + what + '. Ask the owner for Editor access.' : 'Could not ' + what + '. Try again.'); return false; }
 }
-const repPos = t => t.rep || posAt(t, t.pingAgo);
-function nearest(p) {
-  let best = TOWNS[0], bd = 1e9;
-  for (const t of TOWNS) { const d = hav(p, t); if (d < bd) { bd = d; best = t; } }
-  return { town: best, d: bd };
-}
-const agoText = m => m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + (m % 60) + ' min';
-const isLive = t => t.pingAgo <= 5;
-const eligible = t => (t.state === 'unloading' || t.state === 'returning') && !Object.values(approvals).includes(t.id);
-const openOrders = () => orders.filter(o => !o.done && !approvals[o.id]);
-const orderById = id => orders.find(o => o.id === id);
+
+/* ---------- derived model ---------- */
 const truckById = id => trucks.find(t => t.id === id);
-function locText(t) {
-  const p = repPos(t), n = nearest(p);
-  return 'near ' + n.town.n + ' · ' + km(road(p, F, S)) + ' from factory';
+const tLabel = t => t.id + ' · ' + t.plate;
+const tFull = t => t.id + ' · ' + t.plate + ' · ' + t.driver;
+const factoryDest = t => townByName(t.dest) || F;
+function simPos(t) {
+  const dest = factoryDest(t), rk = Math.max(road(F, dest, S), 1), back = S.speed * t.pingAgo / 60 / rk;
+  const lerp = (a, b, p) => ({ lat: a.lat + (b.lat - a.lat) * p, lon: a.lon + (b.lon - a.lon) * p });
+  if (t.state === 'outbound') return lerp(F, dest, clamp(t.p - back, 0, 1));
+  if (t.state === 'returning') return lerp(dest, F, clamp(t.p - back, 0, 1));
+  return t.state === 'unloading' ? { lat: dest.lat, lon: dest.lon } : { lat: F.lat, lon: F.lon };
 }
+function effOf(t) {
+  const p = store.data.pings[t.id];
+  if (p && Number.isFinite(p.lat) && Number.isFinite(p.lon)) {
+    const ago = Math.max(0, Math.round((Date.now() - (p.at || 0)) / 60000));
+    return { pos: { lat: p.lat, lon: p.lon }, state: STATE_LABEL[p.status] ? p.status : t.state, ago, live: ago <= 5, real: true };
+  }
+  return { pos: simPos(t), state: t.state, ago: t.pingAgo, live: t.pingAgo <= 5, real: false };
+}
+function computeModel() {
+  const jobs = Object.entries(store.data.jobs).map(([id, d]) => Object.assign({}, d, { id })).sort((a, b) => a.id.localeCompare(b.id));
+  const assign = {}; for (const [id, d] of Object.entries(store.data.assign)) assign[id] = d.truckId;
+  const effs = trucks.map(t => Object.assign({ truck: t }, effOf(t)));
+  effs.forEach(e => { e.eligible = e.state === 'unloading' || e.state === 'returning'; });
+  const plans = buildPlans(effs.map(e => ({ truck: e.truck, pos: e.pos, eligible: e.eligible })), jobs, assign, S, F);
+  M = { jobs, assign, effs, plans, byTruck: Object.fromEntries(effs.map(e => [e.truck.id, e])), jobById: Object.fromEntries(jobs.map(j => [j.id, j])) };
+}
+const agoText = m => m < 60 ? m + ' min' : m < 1440 ? Math.floor(m / 60) + ' h ' + (m % 60) + ' min' : Math.floor(m / 1440) + ' d';
+const clockAt = m => new Date(Date.now() + m * 60000).toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit', hour12: false });
+function locText(e) { const n = nearestTown(e.pos); return 'near ' + n.town.n + ' · ' + km(road(e.pos, F, S)) + ' from factory'; }
+const locName = l => l.label + (l.kind === 'pin' ? ' (' + l.lat.toFixed(4) + ', ' + l.lon.toFixed(4) + ')' : '');
 
 function advance(min) {
   const r = rngFor(Date.now() & 0xffff);
   for (const t of trucks) {
+    if (store.data.pings[t.id]) continue;
     let left = min;
     while (left > 0) {
-      const dest = townByName(t.dest) || F, rk = Math.max(road(F, dest, S), 1), step = S.speed * left / 60 / rk;
+      const dest = factoryDest(t), rk = Math.max(road(F, dest, S), 1), step = S.speed * left / 60 / rk;
       if (t.state === 'outbound' || t.state === 'returning') {
-        const room = 1 - t.p, use = Math.min(step, room), drove = use * rk;
+        const use = Math.min(step, 1 - t.p), drove = use * rk, consumed = left * use / Math.max(step, 1e-9);
         t.odo += drove; t.kmSvc += drove; t.tyreKm += drove; t.mtdKm += drove; if (t.state === 'returning') t.mtdEmpty += drove;
-        const consumed = left * use / Math.max(step, 1e-9);
         t.p += use;
         if (t.p >= .999) {
           t.p = 0; left -= consumed;
           if (t.state === 'outbound') { t.state = 'unloading'; t.wait = 45; }
-          else { t.state = 'factory'; t.wait = 75; finishJob(t); }
+          else { t.state = 'factory'; t.wait = 75; finishJobs(t); }
         } else left = 0;
       } else {
         t.wait -= left;
@@ -582,314 +792,402 @@ function advance(min) {
         } else left = 0;
       }
     }
-    t.rep = null;
     t.pingAgo = r() < .2 ? 12 + Math.floor(r() * 80) : Math.floor(r() * 4);
   }
 }
-function finishJob(t) {
-  for (const [oid, tid] of Object.entries(approvals)) if (tid === t.id) { const o = orderById(oid); if (o) o.done = true; delete approvals[oid]; }
+async function finishJobs(t) {
+  for (const [jid, d] of Object.entries(store.data.assign)) {
+    if (d.truckId !== t.id) continue;
+    const j = store.data.jobs[jid];
+    if (j) await guarded(() => store.set('jobs', jid, Object.assign({}, j, { done: true })), 'mark a job delivered');
+    await guarded(() => store.del('assign', jid), 'clear an assignment');
+  }
 }
 
 /* ---------- map ---------- */
 const COAST = [[6.50,100.30],[6.25,101.05],[6.20,101.70],[6.20,102.10],[6.20,102.25],[5.85,102.60],[5.40,103.05],[4.90,103.45],[4.30,103.45],[3.80,103.37],[3.25,103.45],[2.70,103.45],[2.20,103.85],[1.65,104.25],[1.40,104.15],[1.27,103.80],[1.30,103.60],[1.45,103.40],[1.80,102.95],[2.05,102.57],[2.25,102.15],[2.52,101.80],[2.60,101.80],[3.00,101.35],[3.25,101.30],[3.50,101.05],[3.85,100.80],[4.20,100.65],[4.45,100.60],[4.85,100.55],[5.40,100.30],[5.65,100.40],[6.12,100.30]];
-function bounds() {
-  if (!fit) return { lat0: 1.1, lat1: 6.6, lon0: 99.9, lon1: 104.5 };
-  const pts = [F, ...trucks.map(repPos)];
-  let la0 = Math.min(...pts.map(p => p.lat)) - .25, la1 = Math.max(...pts.map(p => p.lat)) + .25;
-  let lo0 = Math.min(...pts.map(p => p.lon)) - .25, lo1 = Math.max(...pts.map(p => p.lon)) + .25;
-  const aspect = 1.35;
-  let w = lo1 - lo0, h = la1 - la0;
+function fitBounds(pts, minSpan) {
+  let la0 = Math.min(...pts.map(p => p.lat)), la1 = Math.max(...pts.map(p => p.lat)), lo0 = Math.min(...pts.map(p => p.lon)), lo1 = Math.max(...pts.map(p => p.lon));
+  const pad = Math.max(.12, (Math.max(la1 - la0, lo1 - lo0)) * .14); la0 -= pad; la1 += pad; lo0 -= pad; lo1 += pad;
+  const aspect = 1.35; let w = lo1 - lo0, h = la1 - la0;
+  if (w < minSpan) { const c = (lo0 + lo1) / 2; lo0 = c - minSpan / 2; lo1 = c + minSpan / 2; w = minSpan; }
+  if (h < minSpan / aspect) { const c = (la0 + la1) / 2; la0 = c - minSpan / aspect / 2; la1 = c + minSpan / aspect / 2; h = la1 - la0; }
   if (w / h < aspect) { const nw = h * aspect, c = (lo0 + lo1) / 2; lo0 = c - nw / 2; lo1 = c + nw / 2; }
   else { const nh = w / aspect, c = (la0 + la1) / 2; la0 = c - nh / 2; la1 = c + nh / 2; }
   return { lat0: la0, lat1: la1, lon0: lo0, lon1: lo1 };
 }
-function plannedFor(t) {
-  const pos = repPos(t);
-  const aoid = Object.keys(approvals).find(k => approvals[k] === t.id);
-  if (aoid) { const o = orderById(aoid); return { order: o, m: evalMatch(pos, t, o, S, F), approved: true }; }
-  if (!(t.state === 'unloading' || t.state === 'returning')) return null;
-  let best = null;
-  for (const o of openOrders()) { const m = evalMatch(pos, t, o, S, F); if (m.ok && (!best || m.net > best.m.net)) best = { order: o, m, approved: false }; }
-  return best;
-}
 function renderMap() {
-  const b = bounds(), k = 100, vbW = (b.lon1 - b.lon0) * k, vbH = (b.lat1 - b.lat0) * k, s = vbW / 640;
+  const focus = selected && truckById(selected) ? truckById(selected) : null;
+  let b;
+  if (focus) {
+    const o = M.plans[focus.id], e = M.byTruck[focus.id];
+    b = fitBounds([e.pos, F, ...o.planAll.stops.map(s => s.loc)], 0.5);
+  } else if (!fitAll) b = { lat0: 1.1, lat1: 6.6, lon0: 99.9, lon1: 104.5 };
+  else b = fitBounds([F, ...M.effs.map(e => e.pos)], 1);
+  const k = 100, vbW = (b.lon1 - b.lon0) * k, vbH = (b.lat1 - b.lat0) * k, s = vbW / 640;
   const X = p => ((p.lon - b.lon0) * k).toFixed(1), Y = p => ((b.lat1 - p.lat) * k).toFixed(1);
-  const css = n => 'var(--' + n + ')';
-  let g = '<path d="M' + COAST.map(c => X({ lon: c[1] }) + ' ' + Y({ lat: c[0] })).join(' L') + ' Z" fill="var(--land)" stroke="var(--line)" stroke-width="' + (1.2 * s) + '"/>';
-  g += '<path d="M' + COAST.map(c => X({ lon: c[1] }) + ' ' + Y({ lat: c[0] })).join(' L') + ' Z" fill="none"/>';
+  const inB = p => p.lat >= b.lat0 && p.lat <= b.lat1 && p.lon >= b.lon0 && p.lon <= b.lon1;
+  const coast = COAST.map(c => X({ lon: c[1] }) + ' ' + Y({ lat: c[0] })).join(' L');
+  let g = '<path d="M' + coast + ' Z" fill="var(--land)" stroke="var(--line)" stroke-width="' + (1.2 * s) + '"/>';
+  const wide = (b.lon1 - b.lon0) > 3;
+  const stopLocs = focus ? M.plans[focus.id].planAll.stops.map(q => q.loc) : [];
   for (const t of TOWNS) {
-    if (t.n === F.n) continue;
-    if (t.m || fit) g += '<circle cx="' + X(t) + '" cy="' + Y(t) + '" r="' + (2 * s) + '" fill="var(--muted)" opacity=".55"/>' +
-      (t.m || (fit && t.m) ? '<text x="' + (+X(t) + 4 * s) + '" y="' + (+Y(t) + 3.5 * s) + '" font-size="' + (10.5 * s) + '" fill="var(--muted)" font-family="var(--f-body)">' + esc(t.n) + '</text>' : '');
+    if (t.n === F.n || !inB(t) || (wide && !t.m)) continue;
+    if (stopLocs.some(q => Math.hypot(X(t) - X(q), Y(t) - Y(q)) < 50 * s)) continue;
+    g += '<circle cx="' + X(t) + '" cy="' + Y(t) + '" r="' + (2 * s) + '" fill="var(--muted)" opacity=".55"/><text x="' + (+X(t) + 4 * s) + '" y="' + (+Y(t) + 3.5 * s) + '" font-size="' + (10.5 * s) + '" fill="var(--muted)" font-family="var(--f-body)">' + esc(t.n) + '</text>';
   }
-  const sel = selected && truckById(selected);
-  if (sel) {
-    const pl = plannedFor(sel), p = repPos(sel);
-    if (pl) {
-      const pk = ptOf(pl.order, 'pickup'), dp = ptOf(pl.order, 'drop');
-      g += '<polyline points="' + [p, pk, dp, F].map(q => X(q) + ',' + Y(q)).join(' ') + '" fill="none" stroke="var(--accent)" stroke-width="' + (2.4 * s) + '" stroke-dasharray="' + (6 * s) + ' ' + (4 * s) + '"/>';
-      for (const [q, lab] of [[pk, 'Pick-up'], [dp, 'Drop-off']])
-        g += '<rect x="' + (X(q) - 4 * s) + '" y="' + (Y(q) - 4 * s) + '" width="' + (8 * s) + '" height="' + (8 * s) + '" fill="var(--accent)" transform="rotate(45 ' + X(q) + ' ' + Y(q) + ')"/>' +
-          '<text x="' + (+X(q) + 7 * s) + '" y="' + (+Y(q) - 6 * s) + '" font-size="' + (11 * s) + '" font-weight="600" fill="var(--accent)" font-family="var(--f-body)">' + lab + ' · ' + esc(q.n || (lab === 'Pick-up' ? pl.order.pickup : pl.order.drop)) + '</text>';
+  if (focus) {
+    const e = M.byTruck[focus.id], o = M.plans[focus.id], pl = o.planAll, w = S.corridor;
+    if (w > 0 && e.eligible) {
+      const dx = (F.lon - e.pos.lon) * 111 * Math.cos(e.pos.lat * RAD), dy = (F.lat - e.pos.lat) * 111, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L;
+      const off = (q, sg) => ({ lat: q.lat + ny * w * sg / 111, lon: q.lon + nx * w * sg / (111 * Math.cos(q.lat * RAD)) });
+      const band = [off(e.pos, 1), off(F, 1), off(F, -1), off(e.pos, -1)];
+      g += '<polygon points="' + band.map(q => X(q) + ',' + Y(q)).join(' ') + '" fill="var(--accent)" fill-opacity=".1" stroke="var(--accent)" stroke-opacity=".45" stroke-width="' + (1.2 * s) + '" stroke-dasharray="' + (5 * s) + ' ' + (4 * s) + '"/>';
+    }
+    g += '<line x1="' + X(e.pos) + '" y1="' + Y(e.pos) + '" x2="' + X(F) + '" y2="' + Y(F) + '" stroke="var(--muted)" stroke-opacity=".6" stroke-width="' + (1.4 * s) + '" stroke-dasharray="' + (2 * s) + ' ' + (4 * s) + '"/>';
+    let prev = e.pos;
+    for (const st of pl.stops) {
+      const acc = M.assign[st.job.id] === focus.id;
+      g += '<line x1="' + X(prev) + '" y1="' + Y(prev) + '" x2="' + X(st.loc) + '" y2="' + Y(st.loc) + '" stroke="var(--accent)" stroke-width="' + (3 * s) + '" stroke-linecap="round"' + (acc ? '' : ' stroke-dasharray="' + (7 * s) + ' ' + (5 * s) + '"') + '/>';
+      prev = st.loc;
+    }
+    g += '<line x1="' + X(prev) + '" y1="' + Y(prev) + '" x2="' + X(F) + '" y2="' + Y(F) + '" stroke="var(--accent)" stroke-width="' + (3 * s) + '" stroke-linecap="round" stroke-opacity=".7"/>';
+  }
+  g += '<rect x="' + (X(F) - 7 * s) + '" y="' + (Y(F) - 7 * s) + '" width="' + (14 * s) + '" height="' + (14 * s) + '" fill="var(--ink)"/><text x="' + (+X(F) + 11 * s) + '" y="' + (+Y(F) + 4 * s) + '" font-size="' + (12.5 * s) + '" font-weight="700" fill="var(--ink)" font-family="var(--f-body)">Factory · ' + esc(F.n) + '</text>';
+  if (focus) {
+    const e = M.byTruck[focus.id], o = M.plans[focus.id];
+    o.planAll.stops.forEach((st, i) => {
+      const acc = M.assign[st.job.id] === focus.id, x = +X(st.loc), y = +Y(st.loc);
+      const fill = acc ? 'var(--accent)' : 'var(--surface)', txt = acc ? 'var(--accent-ink)' : 'var(--accent)';
+      g += st.kind === 'pickup'
+        ? '<circle cx="' + x + '" cy="' + y + '" r="' + (9 * s) + '" fill="' + fill + '" stroke="var(--accent)" stroke-width="' + (2 * s) + '"/>'
+        : '<rect x="' + (x - 8 * s) + '" y="' + (y - 8 * s) + '" width="' + (16 * s) + '" height="' + (16 * s) + '" fill="' + fill + '" stroke="var(--accent)" stroke-width="' + (2 * s) + '" transform="rotate(45 ' + x + ' ' + y + ')"/>';
+      g += '<text x="' + x + '" y="' + (y + 4 * s) + '" font-size="' + (11 * s) + '" text-anchor="middle" font-weight="600" fill="' + txt + '" font-family="var(--f-mono)">' + (i + 1) + '</text>' +
+        '<text x="' + (x + 13 * s) + '" y="' + (y + (i % 2 ? 20 : -9) * s) + '" font-size="' + (11 * s) + '" font-weight="600" fill="var(--ink)" stroke="var(--land)" stroke-width="' + (3.5 * s) + '" paint-order="stroke" font-family="var(--f-body)">' + (st.kind === 'pickup' ? 'Pick-up' : 'Drop-off') + ' · ' + esc(st.loc.label) + '</text>';
+    });
+    g += '<circle cx="' + X(e.pos) + '" cy="' + Y(e.pos) + '" r="' + (13 * s) + '" fill="none" stroke="var(--ink)" stroke-width="' + (2 * s) + '"/><circle cx="' + X(e.pos) + '" cy="' + Y(e.pos) + '" r="' + (6.5 * s) + '" fill="var(--s-' + e.state + ')" stroke="var(--surface)" stroke-width="' + (1.5 * s) + '"/>' +
+      '<text x="' + (+X(e.pos) + 16 * s) + '" y="' + (+Y(e.pos) + 16 * s) + '" font-size="' + (11 * s) + '" font-family="var(--f-mono)" fill="var(--ink)" font-weight="500">' + esc(focus.id) + ' now</text>';
+  } else {
+    for (const e of M.effs) {
+      const p = e.pos, n = M.plans[e.truck.id].accepted.length;
+      g += '<g data-id="' + e.truck.id + '" style="cursor:pointer" role="button" aria-label="Truck ' + e.truck.id + '">' +
+        (!e.live ? '<circle cx="' + X(p) + '" cy="' + Y(p) + '" r="' + (10 * s) + '" fill="none" stroke="var(--warn)" stroke-width="' + (1.6 * s) + '" stroke-dasharray="' + (3 * s) + ' ' + (2.5 * s) + '"/>' : '') +
+        '<circle cx="' + X(p) + '" cy="' + Y(p) + '" r="' + (6.5 * s) + '" fill="var(--s-' + e.state + ')" stroke="var(--surface)" stroke-width="' + (1.5 * s) + '"/>' +
+        '<text x="' + (+X(p) + 9 * s) + '" y="' + (+Y(p) - 7 * s) + '" font-size="' + (10.5 * s) + '" font-family="var(--f-mono)" fill="var(--ink)" font-weight="500">' + e.truck.id + (n ? ' +' + n : '') + '</text></g>';
     }
   }
-  g += '<rect x="' + (X(F) - 7 * s) + '" y="' + (Y(F) - 7 * s) + '" width="' + (14 * s) + '" height="' + (14 * s) + '" fill="var(--ink)"/>' +
-    '<text x="' + (+X(F) + 11 * s) + '" y="' + (+Y(F) + 4 * s) + '" font-size="' + (12.5 * s) + '" font-weight="700" fill="var(--ink)" font-family="var(--f-body)">Factory · ' + esc(F.n) + '</text>';
-  for (const t of trucks) {
-    const p = repPos(t), late = !isLive(t), isSel = t.id === selected;
-    g += '<g data-id="' + t.id + '" style="cursor:pointer">' +
-      (late ? '<circle cx="' + X(p) + '" cy="' + Y(p) + '" r="' + (10 * s) + '" fill="none" stroke="var(--warn)" stroke-width="' + (1.6 * s) + '" stroke-dasharray="' + (3 * s) + ' ' + (2.5 * s) + '"/>' : '') +
-      (isSel ? '<circle cx="' + X(p) + '" cy="' + Y(p) + '" r="' + (13 * s) + '" fill="none" stroke="var(--ink)" stroke-width="' + (2 * s) + '"/>' : '') +
-      '<circle cx="' + X(p) + '" cy="' + Y(p) + '" r="' + (6.5 * s) + '" fill="var(--s-' + t.state + ')" stroke="var(--surface)" stroke-width="' + (1.5 * s) + '"/>' +
-      (isSel || fit ? '<text x="' + (+X(p) + 9 * s) + '" y="' + (+Y(p) - 7 * s) + '" font-size="' + (10.5 * s) + '" font-family="var(--f-mono)" fill="var(--ink)" font-weight="500">' + t.id + '</text>' : '') + '</g>';
-  }
-  const el = $('#map');
-  el.setAttribute('viewBox', '0 0 ' + vbW.toFixed(1) + ' ' + vbH.toFixed(1));
-  el.innerHTML = g;
-  $('#fitBtn').textContent = fit ? 'Show whole peninsula' : 'Zoom to fleet';
+  const el = $('#map'); el.setAttribute('viewBox', '0 0 ' + vbW.toFixed(1) + ' ' + vbH.toFixed(1)); el.innerHTML = g;
+  $('#mapTitle').textContent = focus ? 'Truck ' + focus.id + ' · route home' : 'Where the trucks are';
+  $('#backBtn').hidden = !focus; $('#fitBtn').hidden = !!focus; $('#fitBtn').textContent = fitAll ? 'Show whole peninsula' : 'Zoom to fleet';
+  $('#legend').innerHTML = focus
+    ? '<span><i class="dot" style="background:var(--accent)"></i>Accepted job (solid)</span><span><i class="dot" style="border:2px dashed var(--accent);background:none"></i>Suggested job (dashed)</span><span>Circle = pick-up, diamond = drop-off</span><span>Shaded band = route corridor</span>'
+    : '<span><i class="dot s-outbound"></i>Delivering bricks</span><span><i class="dot s-unloading"></i>Unloading</span><span><i class="dot s-returning"></i>Empty, heading home</span><span><i class="dot s-factory"></i>At factory</span><span>Dashed ring = last ping is old</span><span>+N = jobs accepted</span>';
 }
 
-/* ---------- live tab ---------- */
+/* ---------- KPIs and live tab ---------- */
 function renderKpis() {
-  const live = trucks.filter(isLive).length, late = trucks.length - live;
-  const empty = trucks.filter(t => t.state === 'unloading' || t.state === 'returning').length;
-  const sug = suggestAll(trucks.filter(eligible).map(t => ({ truck: t, pos: repPos(t) })), openOrders(), S, F);
-  const gain = sug.reduce((a, x) => a + x.m.net, 0);
-  const apr = Object.keys(approvals).length;
+  const live = M.effs.filter(e => e.live).length, late = M.effs.length - live, empty = M.effs.filter(e => e.eligible).length;
+  const accepted = Object.keys(M.assign).filter(id => M.jobById[id] && !M.jobById[id].done).length;
+  let sug = 0, gain = 0; for (const o of Object.values(M.plans)) for (const x of o.suggested) { sug++; gain += x.ev.gain; }
   $('#kpis').innerHTML =
-    '<div class="kpi good"><div class="v">' + live + '<span class="muted" style="font-size:20px"> / ' + trucks.length + '</span></div><div class="l">Trucks reporting live</div></div>' +
+    '<div class="kpi good"><div class="v">' + live + '<span class="muted" style="font-size:20px"> / ' + M.effs.length + '</span></div><div class="l">Trucks reporting live</div></div>' +
     '<div class="kpi ' + (late ? 'warn' : '') + '"><div class="v">' + late + '</div><div class="l">Delayed pings (over 5 min)</div></div>' +
     '<div class="kpi"><div class="v">' + empty + '</div><div class="l">Empty trucks heading home</div></div>' +
-    '<div class="kpi"><div class="v">' + sug.length + '</div><div class="l">Return jobs suggested</div></div>' +
-    '<div class="kpi good"><div class="v">' + rm(gain) + '</div><div class="l">Extra margin if all approved' + (apr ? ' · ' + apr + ' already approved' : '') + '</div></div>';
+    '<div class="kpi"><div class="v">' + accepted + '</div><div class="l">Return jobs accepted</div></div>' +
+    '<div class="kpi"><div class="v">' + sug + '</div><div class="l">Return jobs suggested</div></div>' +
+    '<div class="kpi good"><div class="v">' + rm(gain) + '</div><div class="l">Extra margin if all suggestions approved</div></div>';
 }
-function renderList() {
-  $('#truckList').innerHTML = trucks.map(t => {
-    const live = isLive(t);
-    return '<button type="button" class="trow" data-id="' + t.id + '" aria-pressed="' + (t.id === selected) + '">' +
-      '<i class="dot s-' + t.state + '"></i><span class="tn">' + t.id + '</span>' +
-      '<span class="tloc">' + esc(STATE_LABEL[t.state]) + (Object.values(approvals).includes(t.id) ? ' · job approved' : '') + '</span>' +
-      '<span class="pill ' + (live ? 'live' : 'late') + '">' + (live ? 'Live' : 'Delayed ' + agoText(t.pingAgo)) + '</span>' +
-      '<span class="tsub">' + esc(t.driver) + ' · ' + esc(locText(t)) + '</span></button>';
-  }).join('');
-  const late = trucks.filter(t => !isLive(t)).length;
-  $('#pingSummary').textContent = late ? late + ' delayed' : 'All live';
-}
-function renderDetail() {
-  const t = selected && truckById(selected), box = $('#truckDetail');
-  if (!t) { box.innerHTML = '<header><h3>Selected truck</h3></header><p class="empty-state">Pick a truck on the map or in the list to see its trip and the best return job.</p>'; return; }
-  const pl = plannedFor(t), c = perKm(S), live = isLive(t);
-  const dest = townByName(t.dest);
-  let job;
-  if (!pl) job = '<span class="muted">' + (t.state === 'outbound' || t.state === 'factory' ? 'Not available until the truck is empty.' : 'No open job fits this truck right now.') + '</span>';
-  else {
-    const o = pl.order;
-    job = '<b>' + esc(o.pickup) + ' → ' + esc(o.drop) + '</b> · ' + o.pallets + ' pallets · ' + rm(o.rate) +
-      '<br><span class="muted small">Adds ' + km(pl.m.extraKm) + ', extra cost ' + rm(pl.m.extraCost) + ', net ' + rm(pl.m.net) + '</span><br>' +
-      (pl.approved ? '<span class="pill ok">Approved</span> <button class="btn sm" data-act="undo" data-o="' + o.id + '" type="button">Undo</button>'
-        : '<button class="btn primary sm" style="margin-top:6px" data-act="approve" data-o="' + o.id + '" data-t="' + t.id + '" type="button">Approve this job</button>');
+function renderSide() {
+  const box = $('#side');
+  if (!selected || !truckById(selected)) {
+    const late = M.effs.filter(e => !e.live).length;
+    box.innerHTML = '<header><h2>Trucks</h2><span class="muted small">' + (late ? late + ' delayed' : 'All live') + ' · tap a truck for its route</span></header><div class="tlist">' + M.effs.map(e => {
+      const n = M.plans[e.truck.id].accepted.length, s2 = M.plans[e.truck.id].suggested.length;
+      return '<button type="button" class="trow" data-id="' + e.truck.id + '"><i class="dot s-' + e.state + '"></i><span class="tn">' + esc(tLabel(e.truck)) + '</span>' +
+        '<span class="pill ' + (e.live ? 'live' : 'late') + '">' + (e.live ? 'Live' : 'Delayed ' + agoText(e.ago)) + '</span>' +
+        '<span class="tsub">' + esc(e.truck.driver) + ' · ' + esc(STATE_LABEL[e.state]) + ' · ' + esc(locText(e)) + (n || s2 ? ' · ' + n + ' accepted, ' + s2 + ' suggested' : '') + '</span></button>';
+    }).join('') + '</div>';
+    return;
   }
-  box.innerHTML = '<header><h3>Truck ' + t.id + ' · ' + esc(t.driver) + '</h3><span class="pill ' + (live ? 'live' : 'late') + '">' + (live ? 'Live' : 'Last seen ' + agoText(t.pingAgo) + ' ago') + '</span></header>' +
-    '<dl class="detail">' +
-    '<div><dt>Status</dt><dd>' + esc(STATE_LABEL[t.state]) + (t.state === 'outbound' || t.state === 'returning' ? ' · trip ' + Math.round(t.p * 100) + '% done' : '') + '</dd></div>' +
-    '<div><dt>Brick drop-off</dt><dd>' + esc(dest ? dest.n : '-') + ' · ' + km(road(F, dest || F, S)) + ' from factory</dd></div>' +
-    '<div><dt>Last known place</dt><dd>' + esc(locText(t)) + '</dd></div>' +
-    '<div><dt>Capacity</dt><dd>' + t.pallets + ' pallets · ' + t.payload + ' t · ' + t.volume + ' m³ (bed ' + t.bedL + ' × ' + t.bedW + ' m, up to ' + t.maxH + ' m high)</dd></div>' +
-    '<div><dt>Empty-run cost</dt><dd>' + rm(c.empty * 100) + ' per 100 km</dd></div>' +
-    '<div><dt>Best return job</dt><dd>' + job + '</dd></div></dl>';
+  const t = truckById(selected), e = M.byTruck[t.id], o = M.plans[t.id], pl = o.planAll;
+  const jobsHere = o.accepted.map(j => ({ job: j, acc: true })).concat(o.suggested.map(x => ({ job: x.job, acc: false, ev: x.ev })));
+  let h = '<div class="rhead"><div class="row" style="justify-content:space-between"><h2>' + esc(tLabel(t)) + '</h2><span class="pill ' + (e.live ? 'live' : 'late') + '">' + (e.live ? 'Live' : 'Last seen ' + agoText(e.ago) + ' ago') + '</span></div>' +
+    '<div class="muted">' + esc(t.driver) + ' · ' + esc(STATE_LABEL[e.state]) + ' · ' + esc(locText(e)) + '</div>' +
+    '<div class="muted small">Capacity ' + t.pallets + ' pallets · ' + t.payload + ' t · ' + t.volume + ' m³ (bed ' + t.bedL + ' × ' + t.bedW + ' m, up to ' + t.maxH + ' m high)</div></div>';
+  if (!jobsHere.length) {
+    h += '<p class="empty-state">' + (e.eligible ? 'No job fits along this truck\'s way home right now.' : 'Jobs are suggested once the truck is empty.') + '</p><div class="chip" style="margin-bottom:12px"><b>' + fmtMin(pl.baseMin) + '</b><span>direct to factory, ' + km(pl.baseKm) + ', home by ' + clockAt(pl.baseMin) + '</span></div>';
+  } else {
+    h += '<div class="chips"><div class="chip"><b>' + clockAt(pl.totalMin) + '</b><span>home by (direct ' + clockAt(pl.baseMin) + ')</span></div>' +
+      '<div class="chip"><b>' + fmtMin(pl.driveMin) + '</b><span>driving · ' + km(pl.km) + '</span></div>' +
+      '<div class="chip"><b>' + fmtMin(pl.svcMin) + '</b><span>loading and unloading</span></div>' +
+      '<div class="chip"><b>+' + km(pl.extraKm) + '</b><span>vs direct · +' + pl.extraHours.toFixed(1) + ' h</span></div>' +
+      '<div class="chip"><b class="' + (pl.net > 0 ? 'pos' : 'neg') + '">' + rm(pl.net) + '</b><span>net of extra cost</span></div></div>';
+    h += '<h3 style="margin-bottom:6px">Jobs on this route</h3><div class="jobs-list">' + jobsHere.map(x => {
+      const j = x.job;
+      return '<div class="jobcard' + (x.acc ? '' : ' sug') + '"><div class="top"><span><b class="mono">' + esc(j.id) + '</b> · ' + esc(j.pickup.label) + ' → ' + esc(j.drop.label) + '</span>' +
+        (x.acc ? '<span class="pill ok">Accepted</span>' : '<span class="pill info">Suggested</span>') + '</div>' +
+        '<div class="muted small">' + j.pallets + ' pallets · ' + j.cbm + ' m³ · ' + j.tonnes + ' t · ' + rm(j.rate) + (j.cargo ? ' · ' + esc(j.cargo) : '') + (x.ev ? ' · net gain ' + rm(x.ev.gain) : '') + '</div>' +
+        '<div class="row">' + (x.acc ? '<button class="btn sm danger" type="button" data-act="cancel" data-j="' + esc(j.id) + '">Cancel job</button>'
+          : '<button class="btn primary sm" type="button" data-act="approve" data-j="' + esc(j.id) + '" data-t="' + t.id + '">Approve</button>') + '</div></div>';
+    }).join('') + '</div>';
+    if (o.suggested.length) h += '<div class="row" style="margin-bottom:12px"><button class="btn primary sm" type="button" data-act="approveTruck" data-t="' + t.id + '">Approve all suggested for ' + t.id + '</button></div>';
+    h += '<h3 style="margin-bottom:2px">Stops in order</h3><ol class="timeline"><li><span class="stopno" style="background:var(--s-' + e.state + ');border-color:var(--s-' + e.state + ')"></span><div><b>Now</b> · ' + esc(nearestTown(e.pos).town.n) + '</div><div class="when">' + clockAt(0) + '</div></li>' +
+      pl.stops.map((s, i) => {
+        const acc = M.assign[s.job.id] === t.id;
+        return '<li><span class="stopno' + (acc ? '' : ' sug') + '">' + (i + 1) + '</span><div><b>' + (s.kind === 'pickup' ? 'Pick-up' : 'Drop-off') + '</b> · ' + esc(locName(s.loc)) + ' <span class="muted">· ' + esc(s.job.id) + '</span></div>' +
+          '<div class="when">' + clockAt(s.arrive) + '</div><div class="sub">' + km(s.legKm) + ', ' + fmtMin(s.legMin) + ' driving, then ' + fmtMin(s.service) + ' ' + (s.kind === 'pickup' ? 'loading' : 'unloading') + ' · load after: ' + Math.round(s.load.p) + ' pallets, ' + r1(s.load.t) + ' t</div></li>';
+      }).join('') +
+      '<li><span class="stopno home"></span><div><b>Factory</b> · ' + esc(F.n) + '</div><div class="when">' + clockAt(pl.totalMin) + '</div><div class="sub">' + km(pl.endLegKm) + ', ' + fmtMin(pl.endLegMin) + ' driving</div></li></ol>';
+  }
+  box.innerHTML = h;
 }
-function renderLive() { renderMap(); renderList(); renderDetail(); }
 
-/* ---------- backhaul tab ---------- */
-function matchRow(x, act) {
-  const m = x.m, o = x.order;
-  return '<tr><td class="mono">' + x.truck.id + '</td><td>' + esc(o.pickup) + ' → ' + esc(o.drop) + '<br><span class="muted small">' + esc(o.cargo || '') + '</span></td>' +
-    '<td class="r">' + o.pallets + ' plt<br><span class="muted small">' + o.tonnes + ' t' + (o.cbm ? ' · ' + o.cbm + ' m³' : '') + '</span></td>' +
-    '<td class="r">' + km(m.toPick) + '</td><td class="r">' + km(m.extraKm) + '</td><td class="r">' + rm(m.revenue) + '</td><td class="r">' + rm(m.extraCost) + '</td>' +
-    '<td class="r ' + (m.net > 0 ? 'pos' : 'neg') + '">' + rm(m.net) + '</td><td>' + act + '</td></tr>';
+/* ---------- jobs tab ---------- */
+const MHEAD = '<thead><tr><th>Truck</th><th>Job</th><th class="r">Load</th><th class="r">Off route<br>pick-up / drop-off</th><th class="r">Price</th><th class="r">Net gain</th><th></th></tr></thead>';
+function jobCell(j) {
+  return '<b class="mono">' + esc(j.id) + '</b> ' + esc(j.pickup.label) + (j.pickup.kind === 'pin' ? ' <span class="pill info">pin</span>' : '') + ' → ' + esc(j.drop.label) + (j.drop.kind === 'pin' ? ' <span class="pill info">pin</span>' : '') +
+    '<br><span class="muted small">' + esc(j.cargo || '') + (j.cargo && j.date ? ' · ' : '') + (j.date ? esc(dateWord(j.date)) : '') + '</span>';
 }
-const MHEAD = '<thead><tr><th>Truck</th><th>Job</th><th class="r">Load</th><th class="r">To pick-up</th><th class="r">Extra km</th><th class="r">Price</th><th class="r">Extra cost</th><th class="r">Net</th><th></th></tr></thead>';
-function renderBackhaul() {
-  const sug = suggestAll(trucks.filter(eligible).map(t => ({ truck: t, pos: repPos(t) })), openOrders(), S, F);
-  $('#sugSummary').textContent = sug.length + ' matches · ' + rm(sug.reduce((a, x) => a + x.m.net, 0)) + ' net';
-  $('#approveAll').disabled = !sug.length;
-  $('#suggestions').innerHTML = sug.length
-    ? '<table>' + MHEAD + '<tbody>' + sug.map(x => matchRow(x, '<button class="btn primary sm" data-act="approve" data-o="' + x.order.id + '" data-t="' + x.truck.id + '" type="button">Approve</button>')).join('') + '</tbody></table>'
-    : '<p class="empty-state">No open job fits an empty truck right now. Add jobs on the Orders tab, loosen the rules above, or move time on.</p>';
-  const ap = Object.entries(approvals).map(([oid, tid]) => { const o = orderById(oid), t = truckById(tid); return o && t ? { truck: t, order: o, m: evalMatch(repPos(t), t, o, S, F) } : null; }).filter(Boolean);
-  $('#approved').innerHTML = ap.length
-    ? '<table>' + MHEAD + '<tbody>' + ap.map(x => matchRow(x, '<button class="btn sm" data-act="undo" data-o="' + x.order.id + '" type="button">Undo</button>')).join('') + '</tbody></table>'
-    : '<p class="empty-state">Nothing approved yet.</p>';
+function dateWord(d) { const n = dayDiff(d, todayStr()); return (n === 0 ? 'today' : n > 0 ? 'in ' + n + ' d' : -n + ' d ago') + ' (' + d + ')'; }
+const loadCell = j => j.pallets + ' plt<br><span class="muted small">' + j.cbm + ' m³ · ' + j.tonnes + ' t</span>';
+const truckCell = t => '<span class="mono">' + esc(t.id) + '</span> ' + esc(t.plate) + '<br><span class="muted small">' + esc(t.driver) + '</span>';
+function renderJobs() {
+  let rows = [], total = 0, count = 0;
+  for (const o of Object.values(M.plans)) for (const x of o.suggested) {
+    count++; total += x.ev.gain;
+    rows.push('<tr><td>' + truckCell(o.it.truck) + '</td><td>' + jobCell(x.job) + '</td><td class="r">' + loadCell(x.job) + '</td><td class="r">' + Math.round(x.ev.pkOff) + ' / ' + Math.round(x.ev.dpOff) + ' km</td><td class="r">' + rm(x.job.rate) + '</td><td class="r pos">' + rm(x.ev.gain) + '</td>' +
+      '<td><button class="btn primary sm" type="button" data-act="approve" data-j="' + esc(x.job.id) + '" data-t="' + o.it.truck.id + '">Approve</button> <button class="btn sm" type="button" data-act="select" data-t="' + o.it.truck.id + '">Route</button></td></tr>');
+  }
+  $('#sugSummary').textContent = count + ' suggested · ' + rm(total) + ' extra margin';
+  const held = M.jobs.filter(j => !j.done && !M.assign[j.id] && !jobDue(j)).length;
+  $('#planNote').textContent = 'Planning ' + dateWord(PLAN_DATE).replace(/ \(.*\)/, '') + '. ' + (held ? held + ' open job' + (held > 1 ? 's' : '') + ' dated outside the 7 days up to this day ' + (held > 1 ? 'are' : 'is') + ' held back.' : 'No jobs are held back.');
+  $('#approveAll').disabled = !count;
+  $('#suggestions').innerHTML = rows.length ? '<table>' + MHEAD + '<tbody>' + rows.join('') + '</tbody></table>'
+    : '<p class="empty-state">' + (M.jobs.length ? 'No open job fits an empty truck right now. Add jobs, loosen the rules above, or move time on.' : 'No jobs yet. Use “Add or import jobs” to add one, or open “Jobs on the board” to load sample jobs.') + '</p>';
+  const ap = [];
+  for (const o of Object.values(M.plans)) for (const st of o.planAccepted.stops) if (st.kind === 'pickup') {
+    const drop = o.planAccepted.stops.find(s => s.kind === 'drop' && s.job.id === st.job.id);
+    ap.push('<tr><td>' + truckCell(o.it.truck) + '</td><td>' + jobCell(st.job) + '</td><td class="r">' + loadCell(st.job) + '</td><td class="r">' + clockAt(st.arrive) + '</td><td class="r">' + (drop ? clockAt(drop.arrive) : '-') + '</td><td class="r">' + rm(st.job.rate) + '</td>' +
+      '<td><button class="btn sm danger" type="button" data-act="cancel" data-j="' + esc(st.job.id) + '">Cancel</button> <button class="btn sm" type="button" data-act="select" data-t="' + o.it.truck.id + '">Route</button></td></tr>');
+  }
+  $('#approved').innerHTML = ap.length ? '<table><thead><tr><th>Truck</th><th>Job</th><th class="r">Load</th><th class="r">Pick-up ETA</th><th class="r">Drop-off ETA</th><th class="r">Price</th><th></th></tr></thead><tbody>' + ap.join('') + '</tbody></table>'
+    : '<p class="empty-state">Nothing accepted yet. Approve a suggestion above or from a truck\'s route.</p>';
   renderOptions();
 }
 function renderOptions() {
-  const id = $('#opt-truck').value, t = truckById(id);
-  if (!t) { $('#options').innerHTML = ''; return; }
-  if (!(t.state === 'unloading' || t.state === 'returning')) { $('#options').innerHTML = '<p class="empty-state">Truck ' + t.id + ' is not empty right now (' + esc(STATE_LABEL[t.state].toLowerCase()) + ').</p>'; return; }
-  const pos = repPos(t), rows = openOrders().map(o => ({ truck: t, order: o, m: evalMatch(pos, t, o, S, F) }))
-    .sort((a, b) => (b.m.ok - a.m.ok) || (b.m.net - a.m.net));
-  $('#options').innerHTML = rows.length
-    ? '<table>' + MHEAD.replace('<th></th>', '<th>Fit</th>') + '<tbody>' + rows.map(x => matchRow(x, x.m.ok
-      ? '<button class="btn primary sm" data-act="approve" data-o="' + x.order.id + '" data-t="' + t.id + '" type="button">Approve</button>'
-      : '<span class="pill late">' + esc(x.m.reasons[0]) + '</span>')).join('') + '</tbody></table>'
+  const id = $('#opt-truck').value, e = M.byTruck[id];
+  if (!e) { $('#options').innerHTML = ''; return; }
+  if (!e.eligible) { $('#options').innerHTML = '<p class="empty-state">Truck ' + esc(id) + ' is not empty right now (' + esc(STATE_LABEL[e.state].toLowerCase()) + ').</p>'; return; }
+  const o = M.plans[id], rows = M.jobs.filter(j => !j.done && !M.assign[j.id]).map(j => ({ j, ev: evaluateAdd({ truck: e.truck, pos: e.pos }, o.accepted, j, S, F) }))
+    .sort((a, b) => (b.ev.ok - a.ev.ok) || (b.ev.gain - a.ev.gain));
+  $('#options').innerHTML = rows.length ? '<table><thead><tr><th>Job</th><th class="r">Load</th><th class="r">Off route<br>pick-up / drop-off</th><th class="r">Price</th><th class="r">Net gain</th><th>Fit</th></tr></thead><tbody>' + rows.map(x =>
+    '<tr><td>' + jobCell(x.j) + '</td><td class="r">' + loadCell(x.j) + '</td><td class="r">' + Math.round(x.ev.pkOff) + ' / ' + Math.round(x.ev.dpOff) + ' km</td><td class="r">' + rm(x.j.rate) + '</td><td class="r ' + (x.ev.gain > 0 ? 'pos' : 'neg') + '">' + rm(x.ev.gain) + '</td><td>' +
+    (x.ev.ok ? '<button class="btn primary sm" type="button" data-act="approve" data-j="' + esc(x.j.id) + '" data-t="' + esc(id) + '">Approve</button>' : '<span class="pill late">' + esc(x.ev.reasons[0]) + '</span>') + '</td></tr>').join('') + '</tbody></table>'
     : '<p class="empty-state">No open jobs.</p>';
 }
 
 /* ---------- costs tab ---------- */
 function renderCosts() {
   const c = perKm(S), dh = driverHr(S);
-  $('#costBreak').innerHTML =
-    '<div><b>' + rm(c.loaded * 100) + '</b><span>per 100 km loaded</span></div><div><b>' + rm(c.empty * 100) + '</b><span>per 100 km empty</span></div>' +
+  $('#costBreak').innerHTML = '<div><b>' + rm(c.loaded * 100) + '</b><span>per 100 km loaded</span></div><div><b>' + rm(c.empty * 100) + '</b><span>per 100 km empty</span></div>' +
     '<div><b>RM ' + c.fuelLoaded.toFixed(2) + '</b><span>fuel per km, loaded</span></div><div><b>RM ' + c.tyre.toFixed(2) + '</b><span>tyres per km</span></div>' +
     '<div><b>RM ' + c.svc.toFixed(2) + '</b><span>servicing per km</span></div><div><b>RM ' + dh.toFixed(2) + '</b><span>driver per hour</span></div>';
   let tot = 0, emptyKm = 0, emptyCost = 0, allKm = 0;
   const rows = trucks.map(t => {
-    const loadedKm = t.mtdKm - t.mtdEmpty;
-    const cost = loadedKm * c.loaded + t.mtdEmpty * c.empty + t.mtdKm / S.speed * dh;
-    const eCost = t.mtdEmpty * c.empty + t.mtdEmpty / S.speed * dh;
+    const cost = (t.mtdKm - t.mtdEmpty) * c.loaded + t.mtdEmpty * c.empty + t.mtdKm / S.speed * dh, eCost = t.mtdEmpty * c.empty + t.mtdEmpty / S.speed * dh;
     tot += cost; emptyKm += t.mtdEmpty; emptyCost += eCost; allKm += t.mtdKm;
     const svcPct = t.kmSvc / S.serviceKm, tyrePct = t.tyreKm / S.tyreLife;
-    const svcState = svcPct >= 1 ? ['crit', 'Overdue'] : svcPct >= .9 ? ['late', 'Due soon'] : ['ok', 'OK'];
-    const tyState = tyrePct >= 1 ? ['crit', 'Replace'] : tyrePct >= .85 ? ['late', 'Check'] : ['ok', 'OK'];
-    const barCls = p => p >= 1 ? 'crit' : p >= .85 ? 'warn' : '';
-    return '<tr><td class="mono">' + t.id + '</td><td>' + esc(t.driver) + '</td><td class="r">' + Math.round(t.odo).toLocaleString('en-MY') + '</td>' +
+    const sv = svcPct >= 1 ? ['crit', 'Overdue'] : svcPct >= .9 ? ['late', 'Due soon'] : ['ok', 'OK'], ty = tyrePct >= 1 ? ['crit', 'Replace'] : tyrePct >= .85 ? ['late', 'Check'] : ['ok', 'OK'];
+    const bc = p => p >= 1 ? 'crit' : p >= .85 ? 'warn' : '';
+    return '<tr><td>' + truckCell(t) + '</td><td class="r">' + Math.round(t.odo).toLocaleString('en-MY') + '</td>' +
       '<td class="r">' + Math.round(t.mtdKm).toLocaleString('en-MY') + '<br><span class="muted small">' + Math.round(t.mtdEmpty / t.mtdKm * 100) + '% empty</span></td>' +
-      '<td><span class="bar ' + barCls(svcPct) + '"><i style="width:' + clamp(svcPct * 100, 0, 100) + '%"></i></span><span class="small muted">' + Math.round(t.kmSvc).toLocaleString('en-MY') + ' / ' + S.serviceKm.toLocaleString('en-MY') + ' km</span> <span class="pill ' + svcState[0] + '">' + svcState[1] + '</span></td>' +
-      '<td><span class="bar ' + barCls(tyrePct) + '"><i style="width:' + clamp(tyrePct * 100, 0, 100) + '%"></i></span><span class="small muted">' + Math.round(tyrePct * 100) + '% worn</span> <span class="pill ' + tyState[0] + '">' + tyState[1] + '</span></td>' +
+      '<td><span class="bar ' + bc(svcPct) + '"><i style="width:' + clamp(svcPct * 100, 0, 100) + '%"></i></span><span class="small muted">' + Math.round(t.kmSvc).toLocaleString('en-MY') + ' / ' + S.serviceKm.toLocaleString('en-MY') + ' km</span> <span class="pill ' + sv[0] + '">' + sv[1] + '</span></td>' +
+      '<td><span class="bar ' + bc(tyrePct) + '"><i style="width:' + clamp(tyrePct * 100, 0, 100) + '%"></i></span><span class="small muted">' + Math.round(tyrePct * 100) + '% worn</span> <span class="pill ' + ty[0] + '">' + ty[1] + '</span></td>' +
       '<td class="r">' + rm(cost) + '</td><td class="r">' + rm(eCost) + '</td></tr>';
   });
-  $('#maintTable').innerHTML = '<table><thead><tr><th>Truck</th><th>Driver</th><th class="r">Odometer km</th><th class="r">Km this month</th><th>Service</th><th>Tyres</th><th class="r">Cost this month</th><th class="r">Of which empty runs</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
-  $('#fleetTotals').innerHTML =
-    '<div><b>' + rm(tot) + '</b><span>running cost, 16 trucks</span></div><div><b>' + Math.round(allKm).toLocaleString('en-MY') + ' km</b><span>driven</span></div>' +
+  $('#maintTable').innerHTML = '<table><thead><tr><th>Truck</th><th class="r">Odometer km</th><th class="r">Km this month</th><th>Service</th><th>Tyres</th><th class="r">Cost this month</th><th class="r">Of which empty runs</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+  $('#fleetTotals').innerHTML = '<div><b>' + rm(tot) + '</b><span>running cost, 16 trucks</span></div><div><b>' + Math.round(allKm).toLocaleString('en-MY') + ' km</b><span>driven</span></div>' +
     '<div><b>' + Math.round(emptyKm / allKm * 100) + '%</b><span>of km are empty returns</span></div><div><b>' + rm(emptyCost) + '</b><span>spent driving empty</span></div>';
 }
 
-/* ---------- orders tab ---------- */
-function renderOrders() {
-  $('#orderTable').innerHTML = orders.length
-    ? '<table><thead><tr><th>Job</th><th>Pick-up → Drop-off</th><th class="r">Pallets</th><th class="r">Tonnes</th><th class="r">Size H × W × D m</th><th class="r">m³</th><th class="r">Price</th><th>Cargo</th><th>Source</th><th>Status</th><th></th></tr></thead><tbody>' +
-      orders.map(o => {
-        const tid = approvals[o.id];
-        const st = o.done ? '<span class="pill ok">Delivered</span>' : tid ? '<span class="pill info">Truck ' + esc(tid) + '</span>' : '<span class="pill late">Open</span>';
-        return '<tr><td class="mono">' + esc(o.id) + '</td><td>' + esc(o.pickup) + (o.pickupLL ? ' <span class="pill info">exact</span>' : '') + ' → ' + esc(o.drop) + (o.dropLL ? ' <span class="pill info">exact</span>' : '') + '</td><td class="r">' + o.pallets + '</td><td class="r">' + o.tonnes + '</td><td class="r">' + (o.h ? o.h + ' × ' + o.w + ' × ' + o.d : '-') + '</td><td class="r">' + (o.cbm || '-') + '</td><td class="r">' + rm(o.rate) + '</td><td>' + esc(o.cargo) + '</td><td>' + esc(o.source) + '</td><td>' + st + '</td>' +
-          '<td><button class="btn sm danger" data-act="remove" data-o="' + esc(o.id) + '" type="button">Remove</button></td></tr>';
-      }).join('') + '</tbody></table>'
-    : '<p class="empty-state">No jobs yet. Add one above or import a list.</p>';
+/* ---------- jobs sheet ---------- */
+function renderBoard() {
+  const sampleCount = M.jobs.filter(j => j.source === 'Sample').length;
+  $('#loadSamples').hidden = sampleCount > 0; $('#clearSample').hidden = sampleCount === 0;
+  const locTxt = l => esc(l.label) + (l.kind === 'pin' ? ' <span class="pill info">pin</span>' : ' <span class="pill plain">town centre</span>');
+  $('#orderTable').innerHTML = M.jobs.length ? '<table><thead><tr><th>Job</th><th>Date</th><th>Pick-up</th><th>Drop-off</th><th class="r">Pallets</th><th class="r">Size L × W × H m</th><th class="r">m³</th><th class="r">Tonnes</th><th class="r">Price</th><th>Cargo</th><th>Source</th><th>Status</th><th></th></tr></thead><tbody>' +
+    M.jobs.map(j => {
+      const tid = M.assign[j.id], st = j.done ? '<span class="pill ok">Delivered</span>' : tid ? '<span class="pill info">Truck ' + esc(tid) + '</span>' : '<span class="pill late">Open</span>';
+      return '<tr><td class="mono">' + esc(j.id) + '</td><td>' + (j.date ? esc(dateWord(j.date)) : '<span class="muted">any day</span>') + '</td><td>' + locTxt(j.pickup) + '</td><td>' + locTxt(j.drop) + '</td><td class="r">' + j.pallets + '</td><td class="r">' + (j.l ? j.l + ' × ' + j.w + ' × ' + j.h : '-') + '</td><td class="r">' + j.cbm + '</td><td class="r">' + j.tonnes + '</td><td class="r">' + rm(j.rate) + '</td><td>' + esc(j.cargo) + '</td><td>' + esc(j.source) + '</td><td>' + st + '</td>' +
+        '<td><button class="btn sm danger" type="button" data-act="remove" data-j="' + esc(j.id) + '">Remove</button></td></tr>';
+    }).join('') + '</tbody></table>' : '<p class="empty-state">No jobs yet. Add one from the “Add job” tab, or load sample jobs.</p>';
 }
-function townOpts(sel, blank) {
-  return (blank ? '<option value="">' + blank + '</option>' : '') + TOWNS.slice().sort((a, b) => a.n.localeCompare(b.n)).map(t => '<option' + (t.n === sel ? ' selected' : '') + '>' + esc(t.n) + '</option>').join('');
+function setDlgTab(name) {
+  dlgTab = name;
+  $$('#jobsDlg .dtabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.dt === name)));
+  $('#dp-add').hidden = name !== 'add'; $('#dp-board').hidden = name !== 'board';
 }
+function setAddMode(m) {
+  addMode = m; $$('#addMode button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+  $('#orderForm').hidden = m !== 'manual'; $('#importBox').hidden = m !== 'import';
+}
+function openDlg(t, m) { setDlgTab(t); if (m) setAddMode(m); if (!$('#jobsDlg').open) $('#jobsDlg').showModal(); renderBoard(); }
+function hintFor(inputId, hintId) {
+  const v = $(inputId).value.trim(), h = $(hintId);
+  if (!v) { h.textContent = ''; h.className = 'hint'; return null; }
+  const loc = parseLocation(v);
+  if (loc && !loc.error) { h.textContent = (loc.kind === 'pin' ? '✓ Exact pin: ' : '✓ Town centre: ') + loc.label + ' · ' + loc.lat.toFixed(4) + ', ' + loc.lon.toFixed(4); h.className = 'hint good'; return loc; }
+  h.textContent = loc ? loc.error : ''; h.className = 'hint bad'; return null;
+}
+function formLoad() {
+  const mode = $('#of-lm').value, x = {};
+  if (mode === 'pallets') x.pallets = +$('#of-pal').value;
+  else if (mode === 'dims') { x.l = +$('#of-l').value; x.w = +$('#of-w').value; x.h = +$('#of-h').value; }
+  else x.cbm = +$('#of-cbm').value;
+  return deriveLoad(x, S);
+}
+function updateDerived() {
+  const mode = $('#of-lm').value;
+  $$('.lm').forEach(el => { el.hidden = !el.classList.contains('lm-' + mode); });
+  const d = formLoad(); $('#of-derived').textContent = d ? 'Counted as ' + d.pallets + ' pallets · ' + d.cbm + ' m³ (' + (mode === 'pallets' ? 'volume estimated at ' + S.palletCbm + ' m³ per pallet' : mode === 'volume' ? 'pallets estimated from volume' : 'pallets estimated from volume') + ')' : 'Enter the load to see how it is counted.';
+}
+function newJobId() { return 'J-' + Math.random().toString(36).slice(2, 7).toUpperCase(); }
+
+/* CSV / photo review */
 function showReview(rows, src) {
   review = rows.map(j => {
-    const pickup = matchTown(j.pickupText) || '', drop = matchTown(j.dropText) || '';
-    const pal = j.pallets > 0 ? j.pallets : null;
-    return Object.assign(dimsOf(j), { on: true, pickupText: j.pickupText, dropText: j.dropText, pickup, drop, pallets: pal, tonnes: j.tonnes > 0 ? j.tonnes : (pal ? Math.round(pal * .8 * 10) / 10 : null),
-      rate: j.rate >= 0 ? j.rate : null, cargo: j.cargo || '', unsure: !!j.unsure, src });
+    const pu = parseLocation(j.pickupText, true), dr = parseLocation(j.dropText, true), d = deriveLoad(j, S) || {};
+    return { on: true, pickupText: j.pickupText, dropText: j.dropText, pu: pu && !pu.error ? pu : null, dr: dr && !dr.error ? dr : null, pallets: d.pallets ?? j.pallets, l: j.l, w: j.w, h: j.h, cbm: j.cbm,
+      tonnes: j.tonnes > 0 ? j.tonnes : (d.pallets ? r1(d.pallets * .8) : null), rate: j.rate, cargo: j.cargo || '', date: j.date || todayStr(), unsure: !!j.unsure, src };
   });
   $('#reviewSrc').textContent = src + ' · ' + review.length + ' rows. Fix anything marked in orange, then add.';
   $('#reviewCard').hidden = false; drawReview();
 }
+const rowBad = r => !r.pu || !r.dr || !dateOk(r.date) || !deriveLoad(r, S) || !(r.tonnes > 0) || r.rate == null || (r.pu && r.dr && r.pu.lat === r.dr.lat && r.pu.lon === r.dr.lon);
 function drawReview() {
-  const bad = r => !r.pickup || !r.drop || !(r.pallets > 0) || !(r.tonnes > 0) || r.rate == null || r.pickup === r.drop;
-  $('#review').innerHTML = '<table><thead><tr><th></th><th>Pick-up</th><th>Drop-off</th><th class="r">Pallets</th><th class="r">Tonnes</th><th class="r">Height m</th><th class="r">Width m</th><th class="r">Depth m</th><th class="r">m³</th><th class="r">Price RM</th><th>Cargo</th></tr></thead><tbody>' +
+  const num = (f, r, w) => '<td class="r"><input type="number" data-f="' + f + '" min="0" step="0.1" style="width:' + w + 'px" value="' + (r[f] ?? '') + '"></td>';
+  $('#review').innerHTML = '<table><thead><tr><th></th><th>Pick-up</th><th>Drop-off</th><th class="r">Pallets</th><th class="r">Length m</th><th class="r">Width m</th><th class="r">Height m</th><th class="r">m³</th><th class="r">Tonnes</th><th class="r">Price RM</th><th>Cargo</th><th>Date</th></tr></thead><tbody>' +
     review.map((r, i) => '<tr data-i="' + i + '"' + (r.unsure ? ' style="background:var(--warn-soft)"' : '') + '><td><input type="checkbox" data-f="on" aria-label="Include row ' + (i + 1) + '"' + (r.on ? ' checked' : '') + '></td>' +
-      '<td><select data-f="pickup">' + townOpts(r.pickup, 'Choose town') + '</select>' + (!r.pickup && r.pickupText ? '<div class="small" style="color:var(--warn)">Read as “' + esc(r.pickupText) + '”</div>' : '') + '</td>' +
-      '<td><select data-f="drop">' + townOpts(r.drop, 'Choose town') + '</select>' + (!r.drop && r.dropText ? '<div class="small" style="color:var(--warn)">Read as “' + esc(r.dropText) + '”</div>' : '') + '</td>' +
-      '<td class="r"><input type="number" data-f="pallets" min="1" step="1" style="width:76px" value="' + (r.pallets ?? '') + '"></td>' +
-      '<td class="r"><input type="number" data-f="tonnes" min="0.1" step="0.1" style="width:76px" value="' + (r.tonnes ?? '') + '"></td>' +
-      ['h', 'w', 'd', 'cbm'].map(f => '<td class="r"><input type="number" data-f="' + f + '" min="0" step="0.1" style="width:70px" value="' + (r[f] ?? '') + '"></td>').join('') +
-      '<td class="r"><input type="number" data-f="rate" min="0" step="10" style="width:90px" value="' + (r.rate ?? '') + '"></td>' +
-      '<td><input type="text" data-f="cargo" value="' + esc(r.cargo) + '"></td></tr>').join('') + '</tbody></table>';
-  const ready = review.filter(r => r.on);
-  $('#reviewAdd').disabled = !ready.length || ready.some(bad);
-  $('#reviewMsg').textContent = ready.some(bad) ? 'Some ticked rows still need a town, pallets, tonnes or price.' : '';
+      '<td><input type="text" data-f="pickupText" list="townList" style="min-width:150px" value="' + esc(r.pickupText) + '"><div class="small ' + (r.pu ? 'muted' : '') + '" style="' + (r.pu ? '' : 'color:var(--warn)') + '">' + (r.pu ? '✓ ' + esc(r.pu.label) : 'Not found: pick a town or paste a link') + '</div></td>' +
+      '<td><input type="text" data-f="dropText" list="townList" style="min-width:150px" value="' + esc(r.dropText) + '"><div class="small ' + (r.dr ? 'muted' : '') + '" style="' + (r.dr ? '' : 'color:var(--warn)') + '">' + (r.dr ? '✓ ' + esc(r.dr.label) : 'Not found: pick a town or paste a link') + '</div></td>' +
+      num('pallets', r, 64) + num('l', r, 64) + num('w', r, 64) + num('h', r, 64) + num('cbm', r, 64) + num('tonnes', r, 64) + '<td class="r"><input type="number" data-f="rate" min="0" step="10" style="width:84px" value="' + (r.rate ?? '') + '"></td>' +
+      '<td><input type="text" data-f="cargo" value="' + esc(r.cargo) + '"></td><td><input type="date" data-f="date" min="' + addDays(todayStr(), -7) + '" max="' + addDays(todayStr(), 7) + '" value="' + esc(r.date) + '"></td></tr>').join('') + '</tbody></table>';
+  const ready = review.filter(r => r.on); $('#reviewAdd').disabled = !ready.length || ready.some(rowBad);
+  $('#reviewMsg').textContent = ready.some(rowBad) ? 'Some ticked rows still need a place, a load size, a weight or a price.' : ''; $('#reviewMsg').className = 'hint' + (ready.some(rowBad) ? ' bad' : '');
+}
+function reviewEdit(e) {
+  const tr = e.target.closest('tr[data-i]'), f = e.target.dataset.f; if (!tr || !f) return;
+  const r = review[+tr.dataset.i];
+  if (f === 'on') r.on = e.target.checked;
+  else if (f === 'cargo' || f === 'date') r[f] = e.target.value;
+  else if (f === 'pickupText' || f === 'dropText') { r[f] = e.target.value; const l = parseLocation(e.target.value, true); r[f === 'pickupText' ? 'pu' : 'dr'] = l && !l.error ? l : null; }
+  else r[f] = e.target.value === '' ? null : parseFloat(e.target.value);
+  if (['l', 'w', 'h'].includes(f) && r.l > 0 && r.w > 0 && r.h > 0) r.cbm = r1(r.l * r.w * r.h);
+  if (e.type === 'change') drawReview();
 }
 
-/* ---------- wiring ---------- */
-function renderAll() {
-  renderKpis(); renderLive(); renderBackhaul(); renderCosts(); renderOrders();
-}
-function setTab(name) {
-  tab = name; LS.set('tab', name);
-  $$('nav.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name));
-  $$('section[role=tabpanel]').forEach(s => s.hidden = s.id !== 'tab-' + name);
-}
-function fillSelects() {
-  $('#factory').innerHTML = townOpts(S.factory);
-  const tOpts = trucks.map(t => '<option value="' + t.id + '">' + t.id + ' · ' + esc(t.driver) + '</option>').join('');
-  const keepCi = $('#ci-truck').value, keepOpt = $('#opt-truck').value;
-  $('#ci-truck').innerHTML = tOpts; $('#opt-truck').innerHTML = tOpts;
-  if (keepCi) $('#ci-truck').value = keepCi; if (keepOpt) $('#opt-truck').value = keepOpt;
-  $('#ci-town').innerHTML = townOpts(null);
-  $('#of-pick').innerHTML = townOpts('Seremban'); $('#of-drop').innerHTML = townOpts(S.factory);
-}
+/* ---------- settings grids ---------- */
 const CFG_COST = [['diesel', 'Diesel price', 'RM/L', .05], ['lphLoaded', 'Fuel use, loaded', 'L/100 km', 1], ['lphEmpty', 'Fuel use, empty', 'L/100 km', 1],
   ['tyres', 'Tyres per truck + trailer', 'tyres', 1], ['tyrePrice', 'Price per tyre', 'RM', 50], ['tyreLife', 'Tyre life', 'km', 1000],
   ['serviceCost', 'Cost of one service', 'RM', 50], ['serviceKm', 'Service every', 'km', 500], ['driverMonthly', 'Driver cost per month', 'RM', 100],
   ['driverHours', 'Paid hours per month', 'h', 5], ['speed', 'Average speed', 'km/h', 1], ['roadFactor', 'Road distance ÷ straight line', '×', .05]];
-const CFG_MATCH = [['maxPickup', 'Furthest pick-up from truck', 'km', 5], ['maxExtraKm', 'Most extra km per job', 'km', 5], ['maxExtraHours', 'Most extra driving time', 'h', .5], ['handling', 'Loading or unloading time', 'h each', .25]];
+const CFG_MATCH = [['corridor', 'Route corridor, each side of the way home (0 = off)', 'km', 5], ['maxExtraKm', 'Most extra km per truck plan', 'km', 5], ['maxExtraHours', 'Most extra time per truck plan', 'h', .5],
+  ['maxJobs', 'Most jobs per truck', 'jobs', 1], ['stopBase', 'Loading or unloading, per stop', 'min', 5], ['perPallet', 'Plus per pallet', 'min', .5], ['palletCbm', 'Volume of one pallet load', 'm³', .1]];
 function buildCfg(box, list) {
   $(box).innerHTML = list.map(([k, l, u, st]) => '<label class="fld"><span>' + l + '</span><div class="inp"><input type="number" id="s-' + k + '" min="0" step="' + st + '" value="' + S[k] + '"><em>' + u + '</em></div></label>').join('');
 }
 function cfgChange(e) {
   const el = e.target; if (!el.id || !el.id.startsWith('s-')) return;
   const k = el.id.slice(2), v = parseFloat(el.value);
-  if (!(v > 0) && !(v === 0 && ['maxPickup', 'maxExtraKm', 'maxExtraHours', 'handling'].includes(k))) { el.value = S[k]; return; }
-  S[k] = v; save(); renderAll();
+  if (!(v > 0) && !(v === 0 && ['corridor', 'maxExtraKm', 'maxExtraHours', 'stopBase', 'perPallet'].includes(k))) { el.value = S[k]; return; }
+  S[k] = v; saveSettings(); renderAll();
 }
-function resetFleet() { trucks = initFleet(S, F, SEED); approvals = {}; fillSelects(); }
 
-document.addEventListener('click', e => {
+/* ---------- render ---------- */
+let rafQ = 0;
+function scheduleRender() { if (rafQ) return; rafQ = requestAnimationFrame(() => { rafQ = 0; renderAll(); }); }
+function fillTruckSelects() {
+  const o = trucks.map(t => '<option value="' + t.id + '">' + esc(tFull(t)) + '</option>').join('');
+  const keep = $('#opt-truck').value; $('#opt-truck').innerHTML = o; if (keep) $('#opt-truck').value = keep;
+}
+function renderAll() {
+  if (location.hash === '#driver') { renderDriver(); return; }
+  computeModel();
+  renderKpis(); renderMap(); renderSide(); renderJobs(); renderCosts();
+  if ($('#jobsDlg').open) renderBoard();
+  $('#dataMode').textContent = store.mode === 'db' ? 'Shared data' : 'This browser only';
+  $('#dataMode').className = 'pill ' + (store.mode === 'db' ? 'ok' : 'plain');
+}
+function setTab(name) {
+  tab = name; LS.set('tab', name);
+  $$('nav.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
+  $$('section[role=tabpanel]').forEach(s => { s.hidden = s.id !== 'tab-' + name; });
+}
+function selectTruck(id) { selected = id; if (id) $('#opt-truck').value = id; renderAll(); if (id && tab !== 'live') setTab('live'); }
+
+/* ---------- actions ---------- */
+async function approve(jobId, truckId) { if (await guarded(() => store.set('assign', jobId, { truckId, at: Date.now() }), 'approve jobs')) notify('Job ' + jobId + ' accepted for ' + truckId + '.'); }
+async function cancelJob(jobId) { if (await guarded(() => store.del('assign', jobId), 'cancel jobs')) notify('Job ' + jobId + ' cancelled and open again.'); }
+
+document.addEventListener('click', async e => {
   const tabBtn = e.target.closest('nav.tabs button'); if (tabBtn) return setTab(tabBtn.dataset.tab);
-  const row = e.target.closest('.trow'); if (row) { selected = selected === row.dataset.id ? null : row.dataset.id; $('#opt-truck').value = row.dataset.id; renderLive(); renderOptions(); return; }
-  const g = e.target.closest('#map g[data-id]'); if (g) { selected = g.dataset.id; $('#opt-truck').value = selected; renderLive(); renderOptions(); return; }
+  const dt = e.target.closest('.dtabs button'); if (dt) return setDlgTab(dt.dataset.dt);
+  const am = e.target.closest('#addMode button'); if (am) return setAddMode(am.dataset.m);
+  const row = e.target.closest('.trow'); if (row) return selectTruck(row.dataset.id);
+  const g = e.target.closest('#map g[data-id]'); if (g) return selectTruck(g.dataset.id);
+  if (e.target === $('#jobsDlg')) return $('#jobsDlg').close();
   const b = e.target.closest('button[data-act]'); if (!b) return;
-  const act = b.dataset.act, oid = b.dataset.o;
-  if (act === 'approve') { approvals[oid] = b.dataset.t; save(); renderAll(); }
-  else if (act === 'undo') { delete approvals[oid]; save(); renderAll(); }
-  else if (act === 'remove') { delete approvals[oid]; orders = orders.filter(o => o.id !== oid); save(); renderAll(); }
+  const act = b.dataset.act, jid = b.dataset.j;
+  if (act === 'approve') await approve(jid, b.dataset.t);
+  else if (act === 'cancel') await cancelJob(jid);
+  else if (act === 'select') selectTruck(b.dataset.t);
+  else if (act === 'approveTruck') { for (const x of M.plans[b.dataset.t].suggested) { if (!(await guarded(() => store.set('assign', x.job.id, { truckId: b.dataset.t, at: Date.now() }), 'approve jobs'))) break; } }
+  else if (act === 'remove') { await guarded(async () => { if (store.data.assign[jid]) await store.del('assign', jid); await store.del('jobs', jid); }, 'remove jobs'); }
+});
+$('#approveAll').addEventListener('click', async () => {
+  for (const o of Object.values(M.plans)) for (const x of o.suggested) { if (!(await guarded(() => store.set('assign', x.job.id, { truckId: o.it.truck.id, at: Date.now() }), 'approve jobs'))) return; }
 });
 document.addEventListener('change', cfgChange);
-$('#factory').addEventListener('change', e => {
-  S.factory = e.target.value; F = townByName(S.factory); resetFleet();
-  orders = orders.filter(o => o.source !== 'Sample').concat(seedOrders(S, F, SEED)); selected = null; save(); renderAll();
-});
-$('#fitBtn').addEventListener('click', () => { fit = !fit; renderMap(); });
-$('#adv30').addEventListener('click', () => { advance(30); save(); renderAll(); });
-$('#adv120').addEventListener('click', () => { advance(120); save(); renderAll(); });
+$('#factory').addEventListener('change', e => { S.factory = e.target.value; F = factoryByName(S.factory); trucks = initFleet(S, F, SEED); selected = null; saveSettings(); fillTruckSelects(); renderAll(); });
+$('#fitBtn').addEventListener('click', () => { fitAll = !fitAll; renderAll(); });
+$('#backBtn').addEventListener('click', () => selectTruck(null));
+$('#adv30').addEventListener('click', () => { advance(30); renderAll(); });
+$('#adv120').addEventListener('click', () => { advance(120); renderAll(); });
 $('#opt-truck').addEventListener('change', renderOptions);
-$('#approveAll').addEventListener('click', () => {
-  suggestAll(trucks.filter(eligible).map(t => ({ truck: t, pos: repPos(t) })), openOrders(), S, F).forEach(x => { approvals[x.order.id] = x.truck.id; });
-  save(); renderAll();
+$('#openAdd').addEventListener('click', () => openDlg('add', 'manual'));
+$('#openBoard').addEventListener('click', () => openDlg('board'));
+$('#dlgClose').addEventListener('click', () => $('#jobsDlg').close());
+$('#copyDriver').addEventListener('click', async () => {
+  const url = $('#driverLink').href;
+  try { await navigator.clipboard.writeText(url); notify('Driver page link copied.'); } catch (e) { notify('Copy failed. Open the Driver page and copy its address.'); }
 });
-$('#ciForm').addEventListener('submit', e => {
+$('#loadSamples').addEventListener('click', async () => {
+  $('#boardMsg').textContent = 'Loading…';
+  for (const j of sampleJobsAll()) { const { id, ...rest } = j; if (!(await guarded(() => store.set('jobs', id, rest), 'add jobs'))) break; }
+  $('#boardMsg').textContent = '';
+});
+$('#clearSample').addEventListener('click', async () => {
+  for (const j of M.jobs.filter(x => x.source === 'Sample')) { await guarded(async () => { if (store.data.assign[j.id]) await store.del('assign', j.id); await store.del('jobs', j.id); }, 'remove jobs'); }
+});
+$('#of-pick').addEventListener('input', () => hintFor('#of-pick', '#of-pickHint'));
+$('#of-drop').addEventListener('input', () => hintFor('#of-drop', '#of-dropHint'));
+['#of-lm', '#of-pal', '#of-l', '#of-w', '#of-h', '#of-cbm'].forEach(s => $(s).addEventListener('input', updateDerived));
+$('#orderForm').addEventListener('submit', async e => {
   e.preventDefault();
-  const t = truckById($('#ci-truck').value), lat = parseFloat($('#ci-lat').value), lon = parseFloat($('#ci-lon').value);
-  let p;
-  if (Number.isFinite(lat) && Number.isFinite(lon)) { if (lat < .5 || lat > 7 || lon < 99 || lon > 105) { $('#ciMsg').textContent = 'Those coordinates are outside Peninsular Malaysia.'; return; } p = { lat, lon }; }
-  else p = townByName($('#ci-town').value);
-  t.rep = { lat: p.lat, lon: p.lon }; t.pingAgo = 0; selected = t.id;
-  $('#ciMsg').textContent = t.id + ' is now shown ' + locText(t) + '.'; $('#ci-lat').value = ''; $('#ci-lon').value = '';
-  renderAll();
+  const pu = hintFor('#of-pick', '#of-pickHint'), dr = hintFor('#of-drop', '#of-dropHint'), d = formLoad(), msg = $('#ofMsg');
+  const fail = t => { msg.textContent = t; msg.className = 'hint bad'; };
+  if (!pu || !dr) return fail('Set both places first.');
+  if (pu.lat === dr.lat && pu.lon === dr.lon) return fail('Pick-up and drop-off must be different places.');
+  if (!d) return fail('Enter the load size.');
+  const tonnes = +$('#of-ton').value, rate = +$('#of-rate').value;
+  if (!(tonnes > 0)) return fail('Enter the weight in tonnes.'); if (!(rate >= 0)) return fail('Enter the price.');
+  const date = $('#of-date').value || todayStr();
+  if (!dateOk(date)) return fail('Jobs can be dated from 7 days before to 7 days ahead of today.');
+  const job = { pickup: pu, drop: dr, mode: d.mode, pallets: d.pallets, cbm: d.cbm, l: d.l, w: d.w, h: d.h, tonnes, rate, cargo: $('#of-cargo').value.trim(), date, source: 'Typed', done: false };
+  const id = newJobId();
+  if (await guarded(() => store.set('jobs', id, job), 'add jobs')) { msg.textContent = 'Job ' + id + ' added.'; msg.className = 'hint good'; $('#of-cargo').value = ''; }
 });
-$('#orderForm').addEventListener('submit', e => {
-  e.preventDefault();
-  const pickup = $('#of-pick').value, drop = $('#of-drop').value;
-  if (pickup === drop) { $('#of-cargo').setCustomValidity('Pick-up and drop-off must be different towns.'); $('#of-cargo').reportValidity(); $('#of-cargo').setCustomValidity(''); return; }
-  const pLL = parseLL($('#of-pickll').value), dLL = parseLL($('#of-dropll').value);
-  if (($('#of-pickll').value.trim() && !pLL) || ($('#of-dropll').value.trim() && !dLL)) { $('#ofMsg').textContent = 'Exact location must look like 3.1234, 101.5678 (inside Peninsular Malaysia).'; return; }
-  const dm = dimsOf({ h: +$('#of-h').value, w: +$('#of-w').value, d: +$('#of-d').value, cbm: +$('#of-cbm').value });
-  const o = { id: 'U-' + String(seq++).padStart(3, '0'), pickup, drop, pallets: +$('#of-pal').value, tonnes: +$('#of-ton').value, rate: +$('#of-rate').value, cargo: $('#of-cargo').value.trim(), h: dm.h, w: dm.w, d: dm.d, cbm: dm.cbm, source: 'Typed', done: false };
-  if (pLL) o.pickupLL = pLL; if (dLL) o.dropLL = dLL;
-  orders.push(o);
-  $('#ofMsg').textContent = 'Job ' + o.id + ' added.'; $('#of-cargo').value = ''; $('#of-pickll').value = ''; $('#of-dropll').value = ''; save(); renderAll();
-});
-$('#clearSample').addEventListener('click', () => { orders.filter(o => o.source === 'Sample').forEach(o => delete approvals[o.id]); orders = orders.filter(o => o.source !== 'Sample'); save(); renderAll(); });
-$('#resetAll').addEventListener('click', () => { S = Object.assign({}, DEFAULTS); F = townByName(S.factory); seq = 1; trucks = initFleet(S, F, SEED); orders = seedOrders(S, F, SEED); approvals = {}; selected = null; save(); buildCfg('#costGrid', CFG_COST); buildCfg('#matchGrid', CFG_MATCH); fillSelects(); renderAll(); });
-
-/* CSV */
-const EXAMPLE = 'pickup,dropoff,pallets,tonnes,rate_rm,cargo,height_m,width_m,depth_m,cbm\nSeremban,Rawang,12,9,780,Roof tiles,1.5,2.4,7.2,25.9\nMelaka,Shah Alam,18,14,980,Cement bags,1.4,2.4,10.8,36.3\nKL,Tanjung Malim,8,6,520,Timber,1.0,1.2,9.6,\nBatu Pahat,Selayang,20,15,1250,Ceramic tiles,1.6,2.4,12,46.1';
+const EXAMPLE = 'pickup,dropoff,pallets,tonnes,rate_rm,cargo,length_m,width_m,height_m,cbm\nSeremban,Rawang,12,9,780,Roof tiles,6,2.4,1.5,\nMelaka,Shah Alam,,14,980,Cement bags,10,2.4,1.4,\nKL,Tanjung Malim,8,6,520,Timber,,,,14\n"2.7300, 101.9400",Rawang,20,15,1250,Ceramic tiles,,,,';
 $('#csvExample').addEventListener('click', () => { $('#csvText').value = EXAMPLE; });
 $('#csvFile').addEventListener('change', async e => { const f = e.target.files[0]; if (f) $('#csvText').value = await f.text(); });
 $('#csvRead').addEventListener('click', () => {
@@ -897,33 +1195,23 @@ $('#csvRead').addEventListener('click', () => {
   if (!jobs.length) { $('#reviewCard').hidden = false; $('#review').innerHTML = '<p class="empty-state">No rows found. Paste CSV text with a header row first.</p>'; review = []; $('#reviewAdd').disabled = true; return; }
   showReview(jobs, 'CSV');
 });
-$('#review').addEventListener('input', e => reviewEdit(e));
-$('#review').addEventListener('change', e => reviewEdit(e));
-function reviewEdit(e) {
-  const tr = e.target.closest('tr[data-i]'), f = e.target.dataset.f; if (!tr || !f) return;
-  const r = review[+tr.dataset.i];
-  if (f === 'on') r.on = e.target.checked;
-  else if (f === 'cargo') r.cargo = e.target.value;
-  else if (f === 'pickup' || f === 'drop') r[f] = e.target.value;
-  else r[f] = e.target.value === '' ? null : parseFloat(e.target.value);
-  if (['h', 'w', 'd'].includes(f) && r.h > 0 && r.w > 0 && r.d > 0) r.cbm = Math.round(r.h * r.w * r.d * 10) / 10;
-  if (e.type === 'change') drawReview(); else { const bad = review.filter(x => x.on); $('#reviewAdd').disabled = !bad.length; }
-}
-['#of-h', '#of-w', '#of-d'].forEach(s => $(s).addEventListener('input', () => {
-  const h = +$('#of-h').value, w = +$('#of-w').value, d = +$('#of-d').value;
-  if (h > 0 && w > 0 && d > 0) $('#of-cbm').value = Math.round(h * w * d * 10) / 10;
-}));
+$('#review').addEventListener('input', reviewEdit); $('#review').addEventListener('change', reviewEdit);
 $('#reviewCancel').addEventListener('click', () => { review = null; $('#reviewCard').hidden = true; });
-$('#reviewAdd').addEventListener('click', () => {
-  for (const r of review.filter(x => x.on)) orders.push({ id: 'U-' + String(seq++).padStart(3, '0'), pickup: r.pickup, drop: r.drop, pallets: r.pallets, tonnes: r.tonnes, h: r.h, w: r.w, d: r.d, cbm: r.cbm, rate: r.rate, cargo: r.cargo, source: r.src, done: false });
-  review = null; $('#reviewCard').hidden = true; save(); renderAll();
+$('#reviewAdd').addEventListener('click', async () => {
+  let n = 0;
+  for (const r of review.filter(x => x.on)) {
+    const d = deriveLoad(r, S), id = newJobId();
+    const ok = await guarded(() => store.set('jobs', id, { pickup: r.pu, drop: r.dr, mode: d.mode, pallets: d.pallets, cbm: d.cbm, l: d.l, w: d.w, h: d.h, tonnes: r.tonnes, rate: r.rate, cargo: r.cargo, date: r.date, source: r.src, done: false }), 'add jobs');
+    if (!ok) break; n++;
+  }
+  review = null; $('#reviewCard').hidden = true; if (n) { notify(n + ' jobs added.'); setDlgTab('board'); }
 });
 
-/* Photo of handwriting, read by Claude */
+/* photo of handwritten jobs, read by Claude */
 let sampleFn = null, ctl = null;
 (async () => {
   try {
-    sampleFn = await claude.use('sample');
+    sampleFn = window.claude && window.claude.use ? await window.claude.use('sample') : null;
     const lim = sampleFn ? await sampleFn.limits().catch(() => null) : null;
     if (sampleFn && lim && lim.images) { $('#photoBox').hidden = false; $('#photoFile').accept = lim.images.mediaTypes.join(','); }
   } catch (e) { sampleFn = null; }
@@ -937,31 +1225,83 @@ const PHOTO_ERR = { not_granted: 'Reading photos was not allowed for this page.'
   invalid_json: 'The photo could not be turned into a list. Try a closer, brighter shot.', refused: 'That photo could not be read.', empty_completion: 'Nothing came back. Try again.', session_expired: 'Sign in again, then retry.' };
 $('#photoRead').addEventListener('click', async () => {
   const f = $('#photoFile').files[0]; if (!f || !sampleFn) return;
-  ctl = new AbortController();
-  $('#photoRead').disabled = true; $('#photoStop').hidden = false; $('#photoMsg').textContent = 'Reading…';
-  const prompt = 'This photo shows handwritten transport jobs for a brick factory trucking company in Peninsular Malaysia. Each job has a pick-up town, a drop-off town, a number of pallets, optionally a weight in tonnes, optionally a price in RM, optionally a cargo description, and optionally the cargo size (height, width and depth in metres, or volume in cubic metres).\n' +
+  ctl = new AbortController(); $('#photoRead').disabled = true; $('#photoStop').hidden = false; $('#photoMsg').textContent = 'Reading…';
+  const prompt = 'This photo shows handwritten transport jobs for a brick factory trucking company in Peninsular Malaysia. Each job has a pick-up place, a drop-off place, a load given as a pallet count and/or length, width and height in metres and/or volume in cubic metres, a weight in tonnes, optionally a price in RM, and optionally a cargo description.\n' +
     'Known towns: ' + TOWNS.map(t => t.n).join(', ') + '.\n' +
-    'Reply with only a JSON array, one object per job: {"pickup": string, "dropoff": string, "pallets": number|null, "tonnes": number|null, "rate_rm": number|null, "cargo": string, "height_m": number|null, "width_m": number|null, "depth_m": number|null, "cbm": number|null, "unsure": boolean}. ' +
+    'Reply with only a JSON array, one object per job: {"pickup": string, "dropoff": string, "pallets": number|null, "tonnes": number|null, "rate_rm": number|null, "cargo": string, "length_m": number|null, "width_m": number|null, "height_m": number|null, "cbm": number|null, "unsure": boolean}. ' +
     'Use the exact town name from the known list when the handwriting matches one; otherwise copy what is written. Use null for numbers that are missing. Set unsure to true when any field was hard to read. If the image holds no jobs, reply [].';
   try {
     const out = await sampleFn.json(prompt, { images: f, signal: ctl.signal, modelTier: 'default' });
-    const jobs = (Array.isArray(out) ? out : []).map(j => ({ pickupText: String(j.pickup || ''), dropText: String(j.dropoff || ''), pallets: Number(j.pallets) || null, tonnes: Number(j.tonnes) || null,
-      rate: j.rate_rm == null ? null : Number(j.rate_rm), cargo: String(j.cargo || ''),
-      h: Number(j.height_m) || null, w: Number(j.width_m) || null, d: Number(j.depth_m) || null, cbm: Number(j.cbm) || null, unsure: !!j.unsure }));
-    if (!jobs.length) $('#photoMsg').textContent = 'No jobs found in that photo.';
-    else { $('#photoMsg').textContent = jobs.length + ' jobs read. Check them below.'; showReview(jobs, 'Photo'); }
-  } catch (e) {
-    $('#photoMsg').textContent = e.code === 'cancelled' ? 'Stopped.' : (PHOTO_ERR[e.code] || 'Something went wrong. Try again.');
-  } finally { $('#photoRead').disabled = false; $('#photoStop').hidden = true; }
+    const jobs = (Array.isArray(out) ? out : []).map(j => ({ pickupText: String(j.pickup || ''), dropText: String(j.dropoff || ''), pallets: Number(j.pallets) || null, tonnes: Number(j.tonnes) || null, rate: j.rate_rm == null ? null : Number(j.rate_rm),
+      cargo: String(j.cargo || ''), l: Number(j.length_m) || null, w: Number(j.width_m) || null, h: Number(j.height_m) || null, cbm: Number(j.cbm) || null, unsure: !!j.unsure }));
+    if (!jobs.length) $('#photoMsg').textContent = 'No jobs found in that photo.'; else { $('#photoMsg').textContent = jobs.length + ' jobs read. Check them below.'; showReview(jobs, 'Photo'); }
+  } catch (e) { $('#photoMsg').textContent = e.code === 'cancelled' ? 'Stopped.' : (PHOTO_ERR[e.code] || 'Something went wrong. Try again.'); }
+  finally { $('#photoRead').disabled = false; $('#photoStop').hidden = true; }
 });
 $('#photoStop').addEventListener('click', () => ctl && ctl.abort());
 
-/* init */
-buildCfg('#costGrid', CFG_COST); buildCfg('#matchGrid', CFG_MATCH); fillSelects();
-selected = trucks.find(t => t.state === 'returning')?.id || null;
-if (selected) $('#opt-truck').value = selected;
-setTab(['live', 'backhaul', 'costs', 'orders'].includes(tab) ? tab : 'live');
-renderAll();
+/* ---------- driver page ---------- */
+let drvStatus = LS.get('drvStatus', 'returning'), drvPos = null, watchId = null, lastSent = 0;
+function renderDriver() {
+  $('#d-mode').textContent = store.mode === 'db' ? 'Connected to dispatcher' : 'This browser only';
+  $('#d-mode').className = 'pill ' + (store.mode === 'db' ? 'ok' : 'plain');
+  $$('#d-status button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.s === drvStatus)));
+  const tr = truckById($('#d-truck').value); if (!tr) return;
+  const p = store.data.pings[tr.id];
+  $('#d-last').textContent = p ? 'Last position sent ' + agoText(Math.max(0, Math.round((Date.now() - p.at) / 60000))) + ' ago: ' + p.lat.toFixed(4) + ', ' + p.lon.toFixed(4) + ' (' + (STATE_LABEL[p.status] || '') + ')' : 'No position sent yet.';
+  const jobs = Object.entries(store.data.assign).filter(([, d]) => d.truckId === tr.id).map(([id]) => Object.assign({}, store.data.jobs[id], { id })).filter(j => j.pickup);
+  if (!jobs.length) { $('#d-jobs').innerHTML = '<p class="empty-state">No jobs accepted for this truck yet.</p>'; return; }
+  const pos = p ? { lat: p.lat, lon: p.lon } : simPos(tr), pl = planRoute(pos, F, jobs, tr, S);
+  $('#d-jobs').innerHTML = '<p class="small muted" style="margin-bottom:8px">Home by about ' + clockAt(pl.totalMin) + ' (estimate).</p><ol class="timeline">' + pl.stops.map((s, i) =>
+    '<li><span class="stopno">' + (i + 1) + '</span><div><b>' + (s.kind === 'pickup' ? 'Pick-up' : 'Drop-off') + '</b> · ' + esc(locName(s.loc)) + '</div><div class="when">' + clockAt(s.arrive) + '</div><div class="sub">Job ' + esc(s.job.id) + ' · ' + s.job.pallets + ' pallets · ' + s.job.tonnes + ' t' + (s.job.cargo ? ' · ' + esc(s.job.cargo) : '') + '</div></li>').join('') +
+    '<li><span class="stopno home"></span><div><b>Factory</b> · ' + esc(F.n) + '</div><div class="when">' + clockAt(pl.totalMin) + '</div></li></ol>';
+}
+async function sendPing(pos, force) {
+  const id = $('#d-truck').value, now = Date.now();
+  if (!force && now - lastSent < 15000) return;
+  lastSent = now;
+  await guarded(() => store.set('pings', id, { lat: pos.lat, lon: pos.lon, at: now, status: drvStatus }), 'send your position');
+  renderDriver();
+}
+function stopShare() { if (watchId != null && navigator.geolocation) navigator.geolocation.clearWatch(watchId); watchId = null; $('#d-share').textContent = 'Start sharing my location'; }
+function startShare() {
+  const msg = $('#d-msg');
+  if (watchId != null) { stopShare(); msg.textContent = 'Stopped sharing.'; return; }
+  if (!navigator.geolocation) { msg.textContent = "This view can't read your phone's location. Send a position by hand below."; return; }
+  msg.textContent = 'Asking for your location…';
+  try {
+    watchId = navigator.geolocation.watchPosition(p => {
+      drvPos = { lat: p.coords.latitude, lon: p.coords.longitude }; msg.textContent = 'Sharing live (accuracy ' + Math.round(p.coords.accuracy) + ' m).'; sendPing(drvPos, false);
+    }, err => { stopShare(); msg.textContent = err && err.code === 1 ? "Location is blocked here. Send a position by hand below." : "Couldn't read your location here. Send a position by hand below."; }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 });
+    $('#d-share').textContent = 'Stop sharing';
+  } catch (e) { watchId = null; msg.textContent = "This view can't read your phone's location. Send a position by hand below."; }
+}
+$('#d-share').addEventListener('click', startShare);
+$('#d-status').addEventListener('click', e => { const b = e.target.closest('button[data-s]'); if (!b) return; drvStatus = b.dataset.s; LS.set('drvStatus', drvStatus); const p = drvPos || store.data.pings[$('#d-truck').value]; if (p) sendPing({ lat: p.lat, lon: p.lon }, true); else renderDriver(); });
+$('#d-truck').addEventListener('change', () => { LS.set('drvTruck', $('#d-truck').value); renderDriver(); });
+$('#d-manual').addEventListener('input', () => { const v = $('#d-manual').value.trim(), h = $('#d-manualHint'); if (!v) { h.textContent = ''; return; } const l = parseLocation(v, true); h.textContent = l && !l.error ? '✓ ' + l.label + ' · ' + l.lat.toFixed(4) + ', ' + l.lon.toFixed(4) : (l ? l.error : ''); h.className = 'hint ' + (l && !l.error ? 'good' : 'bad'); });
+$('#d-send').addEventListener('click', () => { const l = parseLocation($('#d-manual').value, true); if (!l || l.error) { $('#d-manualHint').textContent = l ? l.error : 'Enter a place first.'; $('#d-manualHint').className = 'hint bad'; return; } drvPos = { lat: l.lat, lon: l.lon }; sendPing(drvPos, true); $('#d-msg').textContent = 'Position sent.'; });
+
+/* ---------- init ---------- */
+function route() {
+  const d = location.hash === '#driver';
+  $('#dash').hidden = d; $('#drv').hidden = !d; if (d && $('#jobsDlg').open) $('#jobsDlg').close();
+  document.title = d ? 'Driver page' : 'Fleet Management Dashboard';
+  renderAll();
+}
+window.addEventListener('hashchange', route);
+$('#townList').innerHTML = TOWNS.map(t => '<option value="' + esc(t.n) + '"></option>').join('');
+$('#factory').innerHTML = FACTORIES.map(f => '<option' + (f.n === S.factory ? ' selected' : '') + '>' + esc(f.n) + '</option>').join('');
+$('#d-truck').innerHTML = trucks.map(t => '<option value="' + t.id + '">' + esc(tFull(t)) + '</option>').join('');
+{ const saved = LS.get('drvTruck', null); if (saved && truckById(saved)) $('#d-truck').value = saved; }
+buildCfg('#costGrid', CFG_COST); buildCfg('#matchGrid', CFG_MATCH); fillTruckSelects(); updateDerived();
+{ const t0 = todayStr(); for (const id of ['#planDate', '#of-date']) { $(id).min = addDays(t0, -7); $(id).max = addDays(t0, 7); $(id).value = t0; } }
+$('#planDate').addEventListener('change', e => { if (dateOk(e.target.value)) { PLAN_DATE = e.target.value; renderAll(); } else { e.target.value = PLAN_DATE; notify('Pick a day from 7 days before to 7 days ahead of today.'); } });
+$('#planToday').addEventListener('click', () => { PLAN_DATE = todayStr(); $('#planDate').value = PLAN_DATE; renderAll(); });
+setTab(['live', 'jobs', 'costs'].includes(tab) ? tab : 'live');
+store.onChange = scheduleRender;
+route();
+store.init();
 </script>
 
 </body></html>
