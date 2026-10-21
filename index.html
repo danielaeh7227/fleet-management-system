@@ -1,11 +1,16 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Fleet Management Dashboard</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
-/* Layout: KPI strip first, then three tabs. Live fleet = schematic map beside a truck list that turns into one truck's route plan when tapped. Jobs live in a bottom sheet. */
+html { color-scheme: light; }
+body { margin: 0; }
+/* Three work areas: Dispatch (KPIs, map, approvals, job lists), Orders desk (key in, edit, remove), Maintenance (costs, alerts). */
 :root {
   --bg: #ECEFEA;
   --surface: #F8F9F6;
@@ -183,24 +188,33 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; width: 100%; }
 .jobcard .top { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: space-between; }
 .jobs-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
 
-/* bottom sheet / modal */
-dialog#jobsDlg {
-  border: 1px solid var(--line); border-radius: 10px; padding: 0; width: min(1000px, calc(100vw - 24px)); max-height: calc(100dvh - 32px);
-  background: var(--surface); color: var(--ink);
-}
-dialog#jobsDlg[open] { display: flex; flex-direction: column; }
-dialog#jobsDlg::backdrop { background: rgba(8, 14, 12, .55); }
-.dhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px 0; }
-.dbody { padding: 16px; overflow: auto; min-height: 0; display: flex; flex-direction: column; gap: 16px; padding-bottom: max(16px, env(safe-area-inset-bottom, 0px)); }
-.dtabs { display: flex; gap: 4px; padding: 0 16px; border-bottom: 1px solid var(--line); }
-.dtabs button { background: none; border: 0; border-bottom: 3px solid transparent; padding: 10px 12px; font-family: var(--f-display); font-size: 18px; font-weight: 600; color: var(--muted); }
-.dtabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
-@media (max-width: 700px) {
-  dialog#jobsDlg { margin: auto 0 0 0; width: 100%; max-width: 100%; border-radius: 14px 14px 0 0; max-height: 92dvh; }
-}
+/* work areas */
+nav.views button { font-size: 20px; padding: 10px 18px; }
+@media (max-width: 520px) { nav.views button { font-size: 17px; padding: 10px 10px; } }
+.viewhint { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin-top: -8px; }
+details > summary { list-style: revert; }
+.k-accepted { --kc: var(--ok); } .k-suggested { --kc: var(--accent); } .k-open { --kc: var(--warn); } .k-out { --kc: var(--crit); } .k-delivered { --kc: var(--muted); }
+.pill.k-accepted { background: var(--ok-soft); color: var(--ok); } .pill.k-suggested { background: var(--accent-soft); color: var(--accent); }
+.pill.k-open { background: var(--warn-soft); color: var(--warn); } .pill.k-out { background: var(--crit-soft); color: var(--crit); }
+.pill.k-delivered { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+details.tr { border: 1px solid var(--line); border-radius: 6px; margin-bottom: 8px; background: var(--bg); }
+details.tr > summary { padding: 10px 12px; cursor: pointer; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; }
+details.tr > summary b { font-family: var(--f-mono); }
+details.tr[open] > summary { border-bottom: 1px solid var(--line); }
+details.tr .in { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.alert { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.alert:last-child { border-bottom: 0; }
+.alert .who { font-family: var(--f-mono); font-weight: 500; }
+.alert .sub { grid-column: 2; color: var(--muted); font-size: 12.5px; }
 #toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: max(16px, env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 9px 14px; border-radius: 8px; z-index: 50; max-width: calc(100vw - 32px); font-size: 13px; }
+.gmap { width: 100%; height: 560px; }
+@media (max-width: 700px) { .gmap { height: 400px; } }
+.sugg { position: absolute; left: 0; right: 0; top: 100%; z-index: 20; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 6px 18px rgba(0,0,0,.18); display: flex; flex-direction: column; max-height: 280px; overflow-y: auto; }
+.sugg button { text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 8px 10px; }
+.sugg button:hover { background: var(--accent-soft); }
 </style>
-
+</head>
+<body>
 <div class="app" id="dash">
   <header class="top">
     <div class="brand">
@@ -209,96 +223,191 @@ dialog#jobsDlg::backdrop { background: rgba(8, 14, 12, .55); }
     </div>
     <div class="topctl">
       <div class="fac"><label for="factory">Factory</label><select id="factory"></select></div>
-      <a class="btn" id="driverLink" href="https://claude.ai/artifact/8mapzGqrbXd13L1B5763Wv#driver" target="_blank" rel="noopener">Driver page ↗</a>
+      <a class="btn" id="driverLink" href="https://danielaeh7227.github.io/fleet-management-system/#driver" target="_blank" rel="noopener">Driver page ↗</a>
       <button class="btn" id="copyDriver" type="button">Copy driver link</button>
       <span id="dataMode" class="pill plain" title="Where jobs and truck positions are kept"></span>
+      <span id="gStatus" class="pill plain">Google Maps loading…</span>
     </div>
   </header>
 
-  <div id="kpis" class="kpis"></div>
-
-  <nav class="tabs" role="tablist" aria-label="Sections">
-    <button role="tab" id="t-live" data-tab="live" aria-selected="true">Live fleet</button>
-    <button role="tab" id="t-jobs" data-tab="jobs" aria-selected="false">Jobs</button>
-    <button role="tab" id="t-costs" data-tab="costs" aria-selected="false">Maintenance costs</button>
+  <nav class="tabs views" id="viewNav" role="tablist" aria-label="Work area">
+    <button role="tab" data-view="dispatch" aria-selected="true">Dispatch</button>
+    <button role="tab" data-view="orders" aria-selected="false">Orders desk</button>
+    <button role="tab" data-view="maint" aria-selected="false">Maintenance</button>
   </nav>
+  <div class="viewhint small muted"><span id="viewDesc"></span> <button class="btn sm" id="copyView" type="button">Copy link to this area</button></div>
 
-  <!-- LIVE FLEET -->
-  <section id="tab-live" class="stack" role="tabpanel" aria-labelledby="t-live">
-    <div class="live-grid">
+  <!-- 1. DISPATCH -->
+  <section id="v-dispatch" class="stack">
+    <div id="kpis" class="kpis"></div>
+
+    <div class="card">
+      <header><h2>Plan</h2><span class="muted small" id="planNote"></span></header>
+      <div class="row" style="align-items:flex-end">
+        <label class="fld" style="max-width:220px"><span>Plan for (7 days either side of today)</span><input type="date" id="planDate"></label>
+        <button class="btn" id="planToday" type="button">Today</button>
+        <button class="btn sm" id="adv30" type="button" title="Demo: move the sample trucks forward">Demo: +30 min</button>
+        <button class="btn sm" id="adv120" type="button">+ 2 h</button>
+      </div>
+      <details style="margin-top:12px"><summary class="small muted" style="cursor:pointer">Matching rules (corridor, extra km, extra hours, jobs per truck)</summary>
+        <div id="matchGrid" class="grid-fields" style="margin-top:10px"></div>
+        <p class="small muted" style="margin-top:10px">A job is suggested only if the whole plan fits the truck at every stop, both places sit inside the corridor along the way home, the pick-up is ahead of the truck, the extra driving stays inside these limits and the price covers the extra cost.</p>
+      </details>
+    </div>
+
+    <div class="row" style="justify-content:space-between">
+      <div class="seg" id="dMode" role="group" aria-label="Display">
+        <button type="button" data-m="map" aria-pressed="true">Trucks map</button>
+        <button type="button" data-m="jobsmap" aria-pressed="false">Jobs on map</button>
+        <button type="button" data-m="list" aria-pressed="false">Suggested list</button>
+        <button type="button" data-m="cascade" aria-pressed="false">By truck</button>
+        <button type="button" data-m="un" aria-pressed="false">Not assigned</button>
+        <button type="button" data-m="all" aria-pressed="false">All jobs</button>
+      </div>
+    </div>
+
+    <div id="dp-map" class="live-grid">
       <div class="card">
         <header>
           <h2 id="mapTitle">Where the trucks are</h2>
-          <div class="row">
-            <button class="btn sm" id="backBtn" type="button" hidden>All trucks</button>
-            <button class="btn sm" id="fitBtn" type="button">Show whole peninsula</button>
-            <button class="btn sm" id="adv30" type="button" title="Demo: move the sample trucks forward">Demo: +30 min</button>
-            <button class="btn sm" id="adv120" type="button">+ 2 h</button>
-          </div>
+          <div class="row"><button class="btn sm" id="backBtn" type="button" hidden>All trucks</button><button class="btn sm" id="fitBtn" type="button">Show whole peninsula</button></div>
         </header>
-        <div class="mapbox"><svg id="map" role="img" aria-label="Schematic map of truck positions"></svg></div>
+        <div class="mapbox"><svg id="map" role="img" aria-label="Schematic map of truck positions"></svg><div id="gmap" class="gmap" hidden></div></div>
         <div class="legend" id="legend"></div>
-        <p class="small muted" style="margin-top:8px">Schematic map. Distances are straight-line × 1.3 and times are distance ÷ average speed plus loading time, not Google route times.</p>
+        <p class="small muted" id="mapNote" style="margin-top:8px">Schematic map. Distances are straight-line × 1.3 and times are distance ÷ average speed plus loading time, not Google route times.</p>
       </div>
       <div class="card" id="side"></div>
     </div>
-  </section>
 
-  <!-- JOBS -->
-  <section id="tab-jobs" class="stack" role="tabpanel" aria-labelledby="t-jobs" hidden>
-    <div class="card">
-      <header>
-        <h2>Return-trip jobs</h2>
-        <div class="row">
-          <button class="btn primary" id="openAdd" type="button">Add or import jobs</button>
-          <button class="btn" id="openBoard" type="button">Jobs on the board</button>
-        </div>
-      </header>
-      <div class="row" style="margin-bottom:14px; align-items:flex-end">
-        <label class="fld" style="max-width:220px"><span>Plan for (7 days either side of today)</span><input type="date" id="planDate"></label>
-        <button class="btn" id="planToday" type="button">Today</button>
-        <span id="planNote" class="hint"></span>
+    <div id="dp-jobsmap" class="card" hidden>
+      <header><h2>Jobs on the map</h2>
+        <label class="fld" style="min-width:240px"><span>Show jobs for</span><select id="jm-truck"></select></label></header>
+      <div class="mapbox"><svg id="jmap" role="img" aria-label="Map of jobs"></svg><div id="jgmap" class="gmap" hidden></div></div>
+      <div class="legend" id="jmLegend"></div>
+    </div>
+
+    <div id="dp-list" class="stack" hidden>
+      <div class="card">
+        <header><h2>Suggested jobs with the truck they fit</h2><div class="row"><span class="muted small" id="sugSummary"></span><button class="btn primary sm" id="approveAll" type="button">Approve all</button></div></header>
+        <div id="suggestions" class="scroll"></div>
       </div>
-      <div id="matchGrid" class="grid-fields"></div>
-      <p class="small muted" style="margin-top:10px">A truck can take several jobs. A job is suggested only if the whole plan fits the truck at every stop, both places sit inside the corridor along the way home, the pick-up is ahead of the truck, the extra driving stays inside these limits and the price covers the extra cost.</p>
+      <div class="card"><header><h2>Accepted jobs</h2></header><div id="approved" class="scroll"></div></div>
     </div>
-    <div class="card">
-      <header>
-        <h2>Suggested jobs</h2>
-        <div class="row"><span class="muted small" id="sugSummary"></span><button class="btn primary sm" id="approveAll" type="button">Approve all</button></div>
-      </header>
-      <div id="suggestions" class="scroll"></div>
+
+    <div id="dp-cascade" class="card" hidden>
+      <header><h2>By truck</h2><span class="muted small">Open a truck to see its accepted and suggested jobs, in stop order.</span></header>
+      <div id="cascade"></div>
     </div>
-    <div class="card">
-      <header><h2>Accepted jobs</h2></header>
-      <div id="approved" class="scroll"></div>
+
+    <div id="dp-un" class="card" hidden>
+      <header><h2>Not assigned</h2><span class="muted small" id="unSummary"></span></header>
+      <div id="unTable" class="scroll"></div>
     </div>
-    <div class="card">
-      <header>
-        <h2>All options for one truck</h2>
-        <label class="fld" style="min-width:240px"><span>Truck</span><select id="opt-truck"></select></label>
-      </header>
-      <div id="options" class="scroll"></div>
+
+    <div id="dp-all" class="card" hidden>
+      <header><h2>All jobs</h2>
+        <label class="fld" style="min-width:200px"><span>Show</span><select id="allFilter">
+          <option value="all">Everything</option><option value="accepted">Accepted</option><option value="suggested">Suggested</option><option value="open">Open, in the area</option><option value="out">Out of the area</option><option value="delivered">Delivered</option></select></label></header>
+      <div id="allTable" class="scroll"></div>
     </div>
   </section>
 
-  <!-- COSTS -->
-  <section id="tab-costs" class="stack" role="tabpanel" aria-labelledby="t-costs" hidden>
-    <div class="card">
-      <header><h2>Cost inputs</h2><span class="muted small">Starting values are placeholders. Replace them with your own invoices and payroll.</span></header>
-      <div id="costGrid" class="grid-fields"></div>
+  <!-- 2. ORDERS DESK -->
+  <section id="v-orders" class="stack" hidden>
+    <div class="card" id="dp-add">
+      <header><h2 id="formTitle">Add a job</h2>
+        <div class="seg" id="addMode" role="group" aria-label="How to add">
+          <button type="button" data-m="manual" aria-pressed="true">Enter by hand</button>
+          <button type="button" data-m="import" aria-pressed="false">Import a list</button>
+        </div></header>
+      <div id="editBar" class="note" hidden style="margin-bottom:12px"></div>
+
+      <form id="orderForm" class="stack" style="gap:12px">
+        <div class="grid-fields">
+          <label class="fld wide"><span>Pick-up: town, Google Maps link or coordinates</span><input type="text" id="of-pick" list="townList" placeholder="e.g. Seremban, or paste a Google Maps link" autocomplete="off"><div class="hint" id="of-pickHint"></div></label>
+          <label class="fld wide"><span>Drop-off: town, Google Maps link or coordinates</span><input type="text" id="of-drop" list="townList" placeholder="e.g. Rawang, or 3.3213, 101.5741" autocomplete="off"><div class="hint" id="of-dropHint"></div></label>
+          <label class="fld"><span>How is the load measured?</span>
+            <select id="of-lm"><option value="pallets">Pallets</option><option value="dims">Length × width × height</option><option value="volume">Volume (m³)</option></select></label>
+          <label class="fld lm lm-pallets"><span>Pallets</span><input type="number" id="of-pal" min="1" step="1" value="10"></label>
+          <label class="fld lm lm-dims" hidden><span>Length (m)</span><input type="number" id="of-l" min="0" step="0.1" placeholder="7.2"></label>
+          <label class="fld lm lm-dims" hidden><span>Width (m)</span><input type="number" id="of-w" min="0" step="0.1" placeholder="2.4"></label>
+          <label class="fld lm lm-dims" hidden><span>Height (m)</span><input type="number" id="of-h" min="0" step="0.1" placeholder="1.5"></label>
+          <label class="fld lm lm-volume" hidden><span>Volume (m³)</span><input type="number" id="of-cbm" min="0" step="0.1" placeholder="25"></label>
+          <label class="fld"><span>Weight (tonnes)</span><input type="number" id="of-ton" min="0.1" step="0.1" value="8"></label>
+          <label class="fld"><span>Price (RM)</span><input type="number" id="of-rate" min="0" step="10" value="600"></label>
+          <label class="fld"><span>Cargo</span><input type="text" id="of-cargo" placeholder="e.g. roof tiles"></label>
+          <label class="fld"><span>Job date (7 days before to 7 days ahead)</span><input type="date" id="of-date"></label>
+        </div>
+        <div class="hint" id="of-derived"></div>
+        <div class="row"><button class="btn primary" type="submit" id="ofSubmit">Add job</button><button class="btn" type="button" id="ofCancel" hidden>Cancel edit</button><span id="ofMsg" class="hint" role="status"></span></div>
+      </form>
+
+      <div id="importBox" class="stack" hidden>
+        <label class="fld"><span>CSV text, first row = headers (pickup, dropoff, pallets, tonnes, rate_rm, cargo, length_m, width_m, height_m, cbm). Pick-up and drop-off can be a town, a Google Maps link or coordinates.</span>
+          <textarea id="csvText" spellcheck="false" placeholder="pickup,dropoff,pallets,tonnes,rate_rm,cargo"></textarea></label>
+        <div class="row">
+          <input type="file" id="csvFile" accept=".csv,text/csv,text/plain" style="width:auto">
+          <button class="btn" id="csvExample" type="button">Fill with example</button>
+          <button class="btn primary" id="csvRead" type="button">Review rows</button>
+        </div>
+        <div id="photoBox" class="stack" style="gap:10px" hidden>
+          <hr>
+          <label class="fld"><span>Or a photo of handwritten jobs</span><input type="file" id="photoFile" accept="image/*"></label>
+          <div class="row"><img id="photoThumb" class="thumb" alt="Selected photo" hidden>
+            <button class="btn primary" id="photoRead" type="button" disabled>Read the photo</button>
+            <button class="btn" id="photoStop" type="button" hidden>Stop</button>
+            <span id="photoMsg" class="muted small" role="status"></span></div>
+        </div>
+        <div id="reviewCard" hidden class="stack" style="gap:10px">
+          <hr>
+          <div class="row" style="justify-content:space-between"><h3>Check before adding</h3><span class="muted small" id="reviewSrc"></span></div>
+          <div id="review" class="scroll"></div>
+          <div class="row">
+            <button class="btn primary" id="reviewAdd" type="button">Add ticked rows</button>
+            <button class="btn" id="reviewCancel" type="button">Discard</button>
+            <span id="reviewMsg" class="hint" role="status"></span>
+          </div>
+        </div>
+      </div>
     </div>
+
     <div class="card">
-      <header><h2>What one kilometre costs</h2></header>
-      <div id="costBreak" class="cost-break"></div>
+      <header><h2>Jobs on the board</h2>
+        <div class="row">
+          <input type="text" id="oSearch" placeholder="Search id, town, cargo" style="width:200px" aria-label="Search jobs">
+          <div class="seg" id="oMode" role="group" aria-label="Display"><button type="button" data-m="list" aria-pressed="true">List</button><button type="button" data-m="map" aria-pressed="false">Map</button></div>
+          <button class="btn sm" id="loadSamples" type="button">Load sample jobs</button><button class="btn sm" id="clearSample" type="button">Remove sample jobs</button>
+        </div></header>
+      <div id="orderCount" class="muted small" style="margin-bottom:8px"></div>
+      <div id="orderTable" class="scroll"></div>
+      <div id="orderMapBox" hidden>
+        <div class="mapbox"><svg id="omap" role="img" aria-label="Map of jobs"></svg><div id="ogmap" class="gmap" hidden></div></div>
+        <div class="legend" id="omLegend"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. MAINTENANCE -->
+  <section id="v-maint" class="stack" hidden>
+    <div class="card">
+      <header><h2>Alerts</h2><span class="muted small" id="alertSummary"></span></header>
+      <div id="alerts"></div>
     </div>
     <div class="card">
       <header><h2>Fleet this month</h2></header>
       <div id="fleetTotals" class="cost-break"></div>
     </div>
     <div class="card">
-      <header><h2>Per truck</h2><span class="muted small">Service and tyre status follow the intervals above.</span></header>
+      <header><h2>Per truck</h2><span class="muted small">Service and tyre status follow the intervals in the cost inputs below. Log work when it is done.</span></header>
       <div id="maintTable" class="scroll"></div>
+    </div>
+    <div class="card">
+      <header><h2>What one kilometre costs</h2></header>
+      <div id="costBreak" class="cost-break"></div>
+    </div>
+    <div class="card">
+      <header><h2>Cost inputs</h2><span class="muted small">Starting values are placeholders. Replace them with your own invoices and payroll.</span></header>
+      <div id="costGrid" class="grid-fields"></div>
     </div>
   </section>
 </div>
@@ -332,75 +441,6 @@ dialog#jobsDlg::backdrop { background: rgba(8, 14, 12, .55); }
 
 <datalist id="townList"></datalist>
 
-<!-- JOBS SHEET -->
-<dialog id="jobsDlg" aria-labelledby="dlgTitle">
-  <div class="dhead"><h2 id="dlgTitle">Jobs</h2><button class="btn sm" id="dlgClose" type="button">Close</button></div>
-  <div class="dtabs" role="tablist">
-    <button role="tab" id="dt-add" data-dt="add" aria-selected="true">Add job</button>
-    <button role="tab" id="dt-board" data-dt="board" aria-selected="false">Jobs on the board</button>
-  </div>
-  <div class="dbody">
-    <div id="dp-add" class="stack">
-      <div class="seg" id="addMode" role="group" aria-label="How to add">
-        <button type="button" data-m="manual" aria-pressed="true">Enter by hand</button>
-        <button type="button" data-m="import" aria-pressed="false">Import a list</button>
-      </div>
-
-      <form id="orderForm" class="stack" style="gap:12px">
-        <div class="grid-fields">
-          <label class="fld wide"><span>Pick-up: town, Google Maps link or coordinates</span><input type="text" id="of-pick" list="townList" placeholder="e.g. Seremban, or paste a Google Maps link" autocomplete="off"><div class="hint" id="of-pickHint"></div></label>
-          <label class="fld wide"><span>Drop-off: town, Google Maps link or coordinates</span><input type="text" id="of-drop" list="townList" placeholder="e.g. Rawang, or 3.3213, 101.5741" autocomplete="off"><div class="hint" id="of-dropHint"></div></label>
-          <label class="fld"><span>How is the load measured?</span>
-            <select id="of-lm"><option value="pallets">Pallets</option><option value="dims">Length × width × height</option><option value="volume">Volume (m³)</option></select></label>
-          <label class="fld lm lm-pallets"><span>Pallets</span><input type="number" id="of-pal" min="1" step="1" value="10"></label>
-          <label class="fld lm lm-dims" hidden><span>Length (m)</span><input type="number" id="of-l" min="0" step="0.1" placeholder="7.2"></label>
-          <label class="fld lm lm-dims" hidden><span>Width (m)</span><input type="number" id="of-w" min="0" step="0.1" placeholder="2.4"></label>
-          <label class="fld lm lm-dims" hidden><span>Height (m)</span><input type="number" id="of-h" min="0" step="0.1" placeholder="1.5"></label>
-          <label class="fld lm lm-volume" hidden><span>Volume (m³)</span><input type="number" id="of-cbm" min="0" step="0.1" placeholder="25"></label>
-          <label class="fld"><span>Weight (tonnes)</span><input type="number" id="of-ton" min="0.1" step="0.1" value="8"></label>
-          <label class="fld"><span>Price (RM)</span><input type="number" id="of-rate" min="0" step="10" value="600"></label>
-          <label class="fld"><span>Cargo</span><input type="text" id="of-cargo" placeholder="e.g. roof tiles"></label>
-          <label class="fld"><span>Job date (7 days before to 7 days ahead)</span><input type="date" id="of-date"></label>
-        </div>
-        <div class="hint" id="of-derived"></div>
-        <div class="row"><button class="btn primary" type="submit">Add job</button><span id="ofMsg" class="hint" role="status"></span></div>
-      </form>
-
-      <div id="importBox" class="stack" hidden>
-        <label class="fld"><span>CSV text, first row = headers (pickup, dropoff, pallets, tonnes, rate_rm, cargo, length_m, width_m, height_m, cbm). Pick-up and drop-off can be a town, a Google Maps link or coordinates.</span>
-          <textarea id="csvText" spellcheck="false" placeholder="pickup,dropoff,pallets,tonnes,rate_rm,cargo"></textarea></label>
-        <div class="row">
-          <input type="file" id="csvFile" accept=".csv,text/csv,text/plain" style="width:auto">
-          <button class="btn" id="csvExample" type="button">Fill with example</button>
-          <button class="btn primary" id="csvRead" type="button">Review rows</button>
-        </div>
-        <div id="photoBox" class="stack" style="gap:10px" hidden>
-          <hr>
-          <label class="fld"><span>Or a photo of handwritten jobs</span><input type="file" id="photoFile" accept="image/*"></label>
-          <div class="row"><img id="photoThumb" class="thumb" alt="Selected photo" hidden>
-            <button class="btn primary" id="photoRead" type="button" disabled>Read the photo</button>
-            <button class="btn" id="photoStop" type="button" hidden>Stop</button>
-            <span id="photoMsg" class="muted small" role="status"></span></div>
-        </div>
-        <div id="reviewCard" hidden class="stack" style="gap:10px">
-          <hr>
-          <div class="row" style="justify-content:space-between"><h3>Check before adding</h3><span class="muted small" id="reviewSrc"></span></div>
-          <div id="review" class="scroll"></div>
-          <div class="row">
-            <button class="btn primary" id="reviewAdd" type="button">Add ticked rows</button>
-            <button class="btn" id="reviewCancel" type="button">Discard</button>
-            <span id="reviewMsg" class="hint" role="status"></span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="dp-board" class="stack" hidden>
-      <div class="row"><button class="btn sm" id="loadSamples" type="button">Load sample jobs</button><button class="btn sm" id="clearSample" type="button">Remove sample jobs</button><span id="boardMsg" class="hint" role="status"></span></div>
-      <div id="orderTable" class="scroll"></div>
-    </div>
-  </div>
-</dialog>
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
 <script id="logic">
@@ -458,6 +498,9 @@ function hav(a, b) {
   return 6371 * 2 * Math.asin(Math.sqrt(x));
 }
 const road = (a, b, S) => hav(a, b) * S.roadFactor;
+const LEGS = {}; // Google driving legs: key -> {km, min, path}
+const legKey = (a, b) => [a.lat, a.lon, b.lat, b.lon].map(x => (+x).toFixed(3)).join(',');
+function legInfo(a, b, S) { const c = LEGS[legKey(a, b)]; if (c) return { km: c.km, min: c.min, g: true }; const d = road(a, b, S); return { km: d, min: d / S.speed * 60, g: false }; }
 function alongCross(a, b, p) {
   const k = 111, c = Math.cos(a.lat * RAD);
   const vx = (b.lon - a.lon) * k * c, vy = (b.lat - a.lat) * k, L = Math.hypot(vx, vy) || 1;
@@ -542,10 +585,10 @@ function planRoute(pos, F, jobs, truck, S) {
     stops.push({ kind: 'drop', job: j, loc: j.drop, key: Math.max(a, b), ord: 1 });
   }
   stops.sort((x, y) => x.key - y.key || x.ord - y.ord);
-  let cur = pos, t = 0, km = 0, driveMin = 0, svcMin = 0, cost = 0, revenue = 0;
+  let cur = pos, t = 0, km = 0, driveMin = 0, svcMin = 0, cost = 0, revenue = 0, gl = 0, nl = 0;
   const load = { p: 0, c: 0, t: 0 }, peak = { p: 0, c: 0, t: 0 };
   for (const s of stops) {
-    const d = road(cur, s.loc, S), dm = d / S.speed * 60;
+    const li = legInfo(cur, s.loc, S), d = li.km, dm = li.min; nl++; if (li.g) gl++;
     cost += d * (load.p > 0 || load.t > 0 ? c.loaded : c.empty);
     km += d; driveMin += dm; t += dm; s.legKm = d; s.legMin = dm; s.arrive = t;
     const sm = svcMinutes(s.job.pallets, S); svcMin += sm; t += sm; s.service = sm; s.depart = t;
@@ -556,14 +599,14 @@ function planRoute(pos, F, jobs, truck, S) {
     peak.p = Math.max(peak.p, load.p); peak.c = Math.max(peak.c, load.c); peak.t = Math.max(peak.t, load.t);
     cur = s.loc;
   }
-  const dEnd = road(cur, F, S), mEnd = dEnd / S.speed * 60;
+  const le = legInfo(cur, F, S), dEnd = le.km, mEnd = le.min; nl++; if (le.g) gl++;
   cost += dEnd * c.empty; km += dEnd; driveMin += mEnd; t += mEnd;
   cost += (driveMin + svcMin) / 60 * dh;
-  const baseKm = road(pos, F, S), baseMin = baseKm / S.speed * 60, baseCost = baseKm * c.empty + baseKm / S.speed * dh;
+  const lb = legInfo(pos, F, S), baseKm = lb.km, baseMin = lb.min, baseCost = baseKm * c.empty + baseKm / S.speed * dh;
   const over = [];
   if (peak.p > truck.pallets) over.push('pallets'); if (peak.c > truck.volume + 1e-9) over.push('volume'); if (peak.t > truck.payload) over.push('weight');
   return { stops, km, driveMin, svcMin, totalMin: t, endLegKm: dEnd, endLegMin: mEnd, baseKm, baseMin, extraKm: km - baseKm,
-    extraHours: (driveMin + svcMin - baseMin) / 60, extraCost: cost - baseCost, cost, baseCost, revenue, net: revenue - (cost - baseCost), peak, over, fit: over.length === 0, jobCount: jobs.length };
+    extraHours: (driveMin + svcMin - baseMin) / 60, extraCost: cost - baseCost, cost, baseCost, revenue, net: revenue - (cost - baseCost), peak, over, fit: over.length === 0, jobCount: jobs.length, gLegs: gl, nLegs: nl };
 }
 function evaluateAdd(ctx, cur, job, S, F) {
   const f = jobFits(ctx.pos, ctx.truck, job, S, F), reasons = f.reasons.slice();
@@ -667,6 +710,243 @@ function seedJobs(F, tag, seed) {
   return out;
 }
 const sampleJobsAll = () => seedJobs(FACTORIES[0], 'K', 23).concat(seedJobs(FACTORIES[1], 'J', 23));
+
+/* ---------- area check, costs, wear and alerts ---------- */
+function areaFit(starts, F, job, S) {
+  if (S.corridor <= 0 || !starts.length) return { ok: true };
+  let best = null;
+  for (const pos of starts) {
+    const a = alongCross(pos, F, job.pickup), b = alongCross(pos, F, job.drop);
+    if (a.along >= -BEHIND && a.cross <= S.corridor && b.cross <= S.corridor && b.along >= a.along - BEHIND) return { ok: true };
+    if (!best || a.cross < best.a.cross) best = { a, b };
+  }
+  const bits = [];
+  if (best.a.along < -BEHIND) bits.push('pick-up is behind the nearest empty truck');
+  if (best.a.cross > S.corridor) bits.push('pick-up ' + Math.round(best.a.cross) + ' km off the way home');
+  if (best.b.cross > S.corridor) bits.push('drop-off ' + Math.round(best.b.cross) + ' km off the way home');
+  if (!bits.length) bits.push('drop-off is back the way the truck came');
+  return { ok: false, miss: 'Closest truck route: ' + bits.join(', ') };
+}
+function truckCosts(t, S) {
+  const c = perKm(S), dh = driverHr(S);
+  const cost = (t.mtdKm - t.mtdEmpty) * c.loaded + t.mtdEmpty * c.empty + t.mtdKm / S.speed * dh;
+  const eCost = t.mtdEmpty * c.empty + t.mtdEmpty / S.speed * dh;
+  return { cost, eCost, perKm: t.mtdKm ? cost / t.mtdKm : 0 };
+}
+function wearOf(t, m, S) {
+  const svcUsed = m && m.svcOdo != null ? Math.max(0, t.odo - m.svcOdo) : t.kmSvc;
+  const tyreUsed = m && m.tyreOdo != null ? Math.max(0, t.odo - m.tyreOdo) : t.tyreKm;
+  return { svcUsed, tyreUsed, svcPct: svcUsed / S.serviceKm, tyrePct: tyreUsed / S.tyreLife };
+}
+function maintAlerts(rows, S, dom) {
+  const out = [], avg = rows.reduce((a, r) => a + r.k.perKm, 0) / Math.max(rows.length, 1);
+  for (const r of rows) {
+    const w = r.w, t = r.t;
+    if (w.svcPct >= 1) out.push({ rank: 0, lvl: 'crit', t, title: 'Service overdue', sub: Math.round(w.svcUsed - S.serviceKm).toLocaleString('en-MY') + ' km past the ' + S.serviceKm.toLocaleString('en-MY') + ' km interval' });
+    if (w.tyrePct >= 1) out.push({ rank: 1, lvl: 'crit', t, title: 'Tyres need replacing', sub: Math.round(w.tyrePct * 100) + '% of tyre life used' });
+    if (w.svcPct >= .9 && w.svcPct < 1) out.push({ rank: 2, lvl: 'warn', t, title: 'Service due soon', sub: 'About ' + Math.max(0, Math.round(S.serviceKm - w.svcUsed)).toLocaleString('en-MY') + ' km left before service' });
+    if (w.tyrePct >= .85 && w.tyrePct < 1) out.push({ rank: 3, lvl: 'warn', t, title: 'Check tyres', sub: Math.round(w.tyrePct * 100) + '% of tyre life used' });
+    if (avg > 0 && r.k.perKm > avg * 1.2) out.push({ rank: 4, lvl: 'warn', t, title: 'Running cost above fleet average', sub: 'RM ' + r.k.perKm.toFixed(2) + ' per km against RM ' + avg.toFixed(2) + ' for the fleet' });
+    if (t.mtdKm && t.mtdEmpty / t.mtdKm >= .5) out.push({ rank: 5, lvl: 'info', t, title: 'Half or more of this month\'s km were empty', sub: Math.round(t.mtdEmpty / t.mtdKm * 100) + '% empty. More return jobs would help' });
+  }
+  return out.sort((a, b) => a.rank - b.rank || a.t.id.localeCompare(b.t.id));
+}
+</script>
+
+<script id="gm">
+/* ---------- Google Maps, Places and Routes (only runs on the allowed site; the schematic map is the fallback) ---------- */
+const GMAPS_KEY = 'AIzaSyDvMsP5jSIXQSUzIzNe3T6H40M-tkSVb3Y';
+const GM = { ok: false, failed: false, routesFail: '', maps: {}, over: {}, fit: {}, info: null, places: null, token: null };
+const cv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim() || '#0E6F66';
+function gmStatus() {
+  const el = document.getElementById('gStatus'); if (!el) return;
+  if (GM.failed) { el.textContent = 'Google Maps unavailable: schematic map'; el.className = 'pill late'; }
+  else if (!GM.ok) { el.textContent = 'Google Maps loading…'; el.className = 'pill plain'; }
+  else if (GM.routesFail) { el.textContent = 'Google map on · route times estimated'; el.className = 'pill late'; el.title = GM.routesFail; }
+  else { el.textContent = 'Google Maps on'; el.className = 'pill ok'; el.title = ''; }
+}
+function loadGoogle() {
+  window.gm_authFailure = () => { GM.ok = false; GM.failed = true; gmStatus(); if (typeof renderAll === 'function') renderAll(); };
+  window.__gmReady = async () => {
+    try { await google.maps.importLibrary('maps'); GM.ok = true; ['of-pick', 'of-drop', 'd-manual'].forEach(i => document.getElementById(i).removeAttribute('list')); } catch (e) { GM.failed = true; }
+    gmStatus(); renderAll();
+  };
+  const s = document.createElement('script');
+  s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(GMAPS_KEY) + '&callback=__gmReady&loading=async&v=weekly&language=en&region=MY';
+  s.async = true; s.onerror = () => { GM.failed = true; gmStatus(); renderAll(); };
+  document.head.appendChild(s); gmStatus();
+}
+function gMap(id) {
+  if (GM.maps[id]) return GM.maps[id];
+  const m = new google.maps.Map(document.getElementById(id), { center: { lat: 3.4, lng: 102 }, zoom: 7, mapTypeControl: false, streetViewControl: false, fullscreenControl: true, gestureHandling: 'cooperative', clickableIcons: false });
+  GM.maps[id] = m; GM.over[id] = []; return m;
+}
+function gClear(id) { (GM.over[id] || []).forEach(o => o.setMap(null)); GM.over[id] = []; }
+function gAdd(id, o) { GM.over[id].push(o); return o; }
+function gFit(id, key, pts) {
+  const m = GM.maps[id]; if (GM.fit[id] === key || !pts.length) return;
+  GM.fit[id] = key; google.maps.event.trigger(m, 'resize');
+  const b = new google.maps.LatLngBounds(); pts.forEach(p => b.extend({ lat: p.lat, lng: p.lon }));
+  m.fitBounds(b, 48); google.maps.event.addListenerOnce(m, 'idle', () => { if (m.getZoom() > 13) m.setZoom(13); });
+}
+const gLL = p => ({ lat: p.lat, lng: p.lon });
+const gCircle = (fill, scale, stroke) => ({ path: google.maps.SymbolPath.CIRCLE, fillColor: fill, fillOpacity: 1, strokeColor: stroke || '#fff', strokeWeight: 2, scale });
+const gDiamond = (fill, scale) => ({ path: 'M0,-1 L1,0 L0,1 L-1,0 Z', fillColor: fill, fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2, scale });
+const gSquare = (fill, scale) => ({ path: 'M-1,-1 L1,-1 L1,1 L-1,1 Z', fillColor: fill, fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2, scale });
+function gDashed(color, w) { return { strokeOpacity: 0, strokeWeight: w, icons: [{ icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, strokeColor: color, scale: 3 }, offset: '0', repeat: '14px' }] }; }
+function gDecode(str) {
+  const out = []; let i = 0, lat = 0, lng = 0;
+  while (i < str.length) {
+    let b, sh = 0, r = 0; do { b = str.charCodeAt(i++) - 63; r |= (b & 31) << sh; sh += 5; } while (b >= 32); lat += (r & 1) ? ~(r >> 1) : (r >> 1);
+    sh = 0; r = 0; do { b = str.charCodeAt(i++) - 63; r |= (b & 31) << sh; sh += 5; } while (b >= 32); lng += (r & 1) ? ~(r >> 1) : (r >> 1);
+    out.push({ lat: lat / 1e5, lng: lng / 1e5 });
+  }
+  return out;
+}
+function gInfo(map, marker, html) {
+  if (!GM.info) GM.info = new google.maps.InfoWindow();
+  marker.addListener('click', () => { GM.info.setContent(html); GM.info.open({ map, anchor: marker }); });
+}
+
+/* trucks map: all trucks, or one truck's route with accepted and suggested jobs */
+function gDrawTrucks(focus) {
+  const id = 'gmap', map = gMap(id); gClear(id);
+  const ink = cv('--ink'), acc = cv('--accent'), warn = cv('--warn'), muted = cv('--muted');
+  const pts = [F];
+  gAdd(id, new google.maps.Marker({ map, position: gLL(F), icon: gSquare(ink, 8), title: 'Factory ' + F.n, label: { text: 'Factory · ' + F.n, color: ink, fontSize: '12px', fontWeight: '700' } , zIndex: 5 }));
+  if (focus) {
+    const e = M.byTruck[focus.id], o = M.plans[focus.id], pl = o.planAll, w = S.corridor;
+    pts.push(e.pos, ...pl.stops.map(s => s.loc));
+    if (w > 0 && e.eligible) {
+      const dx = (F.lon - e.pos.lon) * 111 * Math.cos(e.pos.lat * RAD), dy = (F.lat - e.pos.lat) * 111, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L;
+      const off = (q, sg) => ({ lat: q.lat + ny * w * sg / 111, lng: q.lon + nx * w * sg / (111 * Math.cos(q.lat * RAD)) });
+      gAdd(id, new google.maps.Polygon({ map, paths: [off(e.pos, 1), off(F, 1), off(F, -1), off(e.pos, -1)], fillColor: acc, fillOpacity: .1, strokeColor: acc, strokeOpacity: .45, strokeWeight: 1, clickable: false }));
+    }
+    const seq = [e.pos, ...pl.stops.map(s => s.loc), F];
+    for (let i = 0; i < seq.length - 1; i++) {
+      const st = pl.stops[i], isAcc = st ? M.assign[st.job.id] === focus.id : true, leg = LEGS[legKey(seq[i], seq[i + 1])];
+      const path = leg && leg.path ? leg.path : [gLL(seq[i]), gLL(seq[i + 1])];
+      const opt = Object.assign({ map, path, strokeColor: acc, strokeOpacity: 1, strokeWeight: 5, clickable: false, zIndex: 2 }, isAcc ? {} : gDashed(acc, 5));
+      gAdd(id, new google.maps.Polyline(opt));
+    }
+    pl.stops.forEach((st, i) => {
+      const isAcc = M.assign[st.job.id] === focus.id;
+      const mk = new google.maps.Marker({ map, position: gLL(st.loc), zIndex: 4, icon: st.kind === 'pickup' ? gCircle(isAcc ? acc : '#fff', 11, acc) : gDiamond(isAcc ? acc : '#fff', 12),
+        label: { text: String(i + 1), color: isAcc ? '#fff' : acc, fontSize: '12px', fontWeight: '700' } });
+      if (!isAcc && st.kind !== 'pickup') mk.setIcon(Object.assign(gDiamond('#fff', 12), { strokeColor: acc }));
+      gInfo(map, mk, '<b>' + (st.kind === 'pickup' ? 'Pick-up' : 'Drop-off') + '</b> · ' + esc(locName(st.loc)) + '<br>Job ' + esc(st.job.id) + ' · ' + clockAt(st.arrive));
+      gAdd(id, mk);
+    });
+    gAdd(id, new google.maps.Marker({ map, position: gLL(e.pos), zIndex: 6, icon: gCircle(cv('--s-' + e.state), 9, ink), label: { text: focus.id + ' now', color: ink, fontSize: '11px', fontWeight: '700' }, title: tFull(focus) }));
+  } else {
+    for (const e of M.effs) {
+      pts.push(e.pos);
+      const n = M.plans[e.truck.id].accepted.length;
+      const mk = new google.maps.Marker({ map, position: gLL(e.pos), zIndex: 3, title: tFull(e.truck), icon: Object.assign(gCircle(cv('--s-' + e.state), 8, e.live ? '#fff' : warn), { labelOrigin: new google.maps.Point(0, -2.4) }),
+        label: { text: e.truck.id + (n ? ' +' + n : ''), color: ink, fontSize: '11px', fontWeight: '600' } });
+      mk.addListener('click', () => selectTruck(e.truck.id));
+      gAdd(id, mk);
+    }
+  }
+  gFit(id, focus ? 'f|' + focus.id : fitAll ? 'all' : 'pen', fitAll || focus ? pts : [{ lat: 1.1, lon: 99.9 }, { lat: 6.6, lon: 104.5 }]);
+}
+
+/* jobs maps: dispatch "Jobs on map" and the orders desk map */
+function gDrawJobs(svgId, jobs, effs) {
+  const id = svgId.replace('map', 'gmap').slice(1), map = gMap(id); gClear(id);
+  const ink = cv('--ink'), pts = [F];
+  const col = { accepted: cv('--ok'), suggested: cv('--accent'), open: cv('--warn'), out: cv('--crit'), delivered: cv('--muted') };
+  gAdd(id, new google.maps.Marker({ map, position: gLL(F), icon: gSquare(ink, 8), zIndex: 5, label: { text: 'Factory · ' + F.n, color: ink, fontSize: '12px', fontWeight: '700' } }));
+  for (const j of jobs) {
+    const kd = statusOf(j).kind, c = col[kd]; pts.push(j.pickup, j.drop);
+    const leg = LEGS[legKey(j.pickup, j.drop)], path = leg && leg.path ? leg.path : [gLL(j.pickup), gLL(j.drop)];
+    gAdd(id, new google.maps.Polyline(Object.assign({ map, path, strokeColor: c, strokeOpacity: .85, strokeWeight: 3, clickable: false }, kd === 'suggested' ? gDashed(c, 3) : {})));
+    const html = '<b>' + esc(j.id) + '</b> · ' + esc(j.pickup.label) + ' → ' + esc(j.drop.label) + '<br>' + j.pallets + ' pallets · ' + j.tonnes + ' t · ' + rm(j.rate) + '<br>' + esc(KIND_LABEL[kd]) + (statusOf(j).truckId ? ' · ' + esc(statusOf(j).truckId) : '');
+    const a = new google.maps.Marker({ map, position: gLL(j.pickup), icon: gCircle(c, 7), zIndex: 3, title: j.id }), b = new google.maps.Marker({ map, position: gLL(j.drop), icon: gDiamond(c, 8), zIndex: 3, title: j.id });
+    gInfo(map, a, html); gInfo(map, b, html); gAdd(id, a); gAdd(id, b);
+  }
+  for (const e of effs) {
+    pts.push(e.pos);
+    gAdd(id, new google.maps.Marker({ map, position: gLL(e.pos), zIndex: 6, title: tFull(e.truck), icon: Object.assign(gCircle(cv('--s-' + e.state), 8, ink), { labelOrigin: new google.maps.Point(0, -2.4) }), label: { text: e.truck.id, color: ink, fontSize: '11px', fontWeight: '600' } }));
+  }
+  gFit(id, id + '|' + jobs.map(j => j.id).join(',') + '|' + effs.length, pts);
+}
+
+/* ---------- Google route times (Routes API), cached per leg ---------- */
+const gq = { busy: false, last: 0, bad: new Set() };
+function legsWanted() {
+  const want = new Map();
+  const add = (a, b) => { const k = legKey(a, b); if (!LEGS[k] && !gq.bad.has(k) && !want.has(k)) want.set(k, [a, b]); };
+  for (const o of Object.values(M.plans)) {
+    const seq = [o.it.pos, ...o.planAll.stops.map(s => s.loc), F];
+    if (o.cur.length || o.it.truck.id === selected) for (let i = 0; i < seq.length - 1; i++) add(seq[i], seq[i + 1]);
+  }
+  return [...want.entries()];
+}
+async function fetchLeg(a, b) {
+  const ll = p => ({ location: { latLng: { latitude: p.lat, longitude: p.lon } } });
+  const r = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', { method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': GMAPS_KEY, 'X-Goog-FieldMask': 'routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline' },
+    body: JSON.stringify({ origin: ll(a), destination: ll(b), travelMode: 'DRIVE', routingPreference: 'TRAFFIC_UNAWARE' }) });
+  if (!r.ok) { const t = await r.text().catch(() => ''); const e = new Error('Routes API ' + r.status + ' ' + t.slice(0, 160)); e.status = r.status; throw e; }
+  const j = await r.json(), rt = j.routes && j.routes[0]; if (!rt) throw new Error('No route');
+  return { km: (rt.distanceMeters || 0) / 1000, min: parseInt(String(rt.duration || '0').replace('s', ''), 10) / 60, path: rt.polyline && rt.polyline.encodedPolyline ? gDecode(rt.polyline.encodedPolyline) : null };
+}
+async function refineLegs() {
+  if (!GM.ok || gq.busy || GM.routesFail || Date.now() - gq.last < 15000) return;
+  const todo = legsWanted().slice(0, 10); if (!todo.length) return;
+  gq.busy = true; gq.last = Date.now(); let got = 0;
+  await Promise.all(todo.map(async ([k, [a, b]]) => {
+    try { LEGS[k] = await fetchLeg(a, b); got++; }
+    catch (e) { gq.bad.add(k); if (e.status === 403 || e.status === 400 || e.status === 401) GM.routesFail = 'Routes API refused the key: ' + e.message; }
+  }));
+  gq.busy = false; legSave(); gmStatus();
+  if (got || GM.routesFail) renderAll();
+}
+function legSave() {
+  try { const o = {}; Object.keys(LEGS).slice(-600).forEach(k => { o[k] = { km: LEGS[k].km, min: LEGS[k].min }; }); localStorage.setItem('bfd2.legs', JSON.stringify(o)); } catch (e) {}
+}
+function legLoad() { try { const o = JSON.parse(localStorage.getItem('bfd2.legs') || '{}'); for (const k in o) LEGS[k] = o[k]; } catch (e) {} }
+
+/* ---------- place search (Places API, new) for pick-up, drop-off and driver position ---------- */
+const PICKED = {};
+const pickedFor = el => { const p = PICKED[el.id]; return p && p.text === el.value ? p.loc : null; };
+function attachPlaces(input, onPick) {
+  const box = document.createElement('div'); box.className = 'sugg'; box.hidden = true; input.parentNode.style.position = 'relative'; input.insertAdjacentElement('afterend', box);
+  let tmr = 0, seq = 0;
+  const close = () => { box.hidden = true; box.innerHTML = ''; };
+  const choose = async (it) => {
+    close();
+    if (it.town) { input.value = it.town.n; PICKED[input.id] = null; return onPick(); }
+    try {
+      const pl = it.pred.toPlace(); await pl.fetchFields({ fields: ['location', 'displayName'] });
+      const lat = pl.location.lat(), lon = pl.location.lng();
+      if (!inMY(lat, lon)) { PICKED[input.id] = null; input.value = it.text; return onPick(); }
+      const label = (pl.displayName || it.text).slice(0, 60);
+      input.value = it.text; PICKED[input.id] = { text: it.text, loc: { label, lat: Math.round(lat * 1e5) / 1e5, lon: Math.round(lon * 1e5) / 1e5, kind: 'pin' } };
+      GM.token = null; onPick();
+    } catch (e) { notify('Could not read that place. Paste a Google Maps link instead.'); }
+  };
+  input.addEventListener('input', () => {
+    clearTimeout(tmr); const v = input.value.trim(); if (v.length < 3 || !GM.ok || /^https?:|^[-\d. ,]+$/.test(v)) return close();
+    tmr = setTimeout(async () => {
+      const my = ++seq, items = [];
+      const q = norm(v); TOWNS.filter(t => norm(t.n).includes(q)).slice(0, 3).forEach(t => items.push({ town: t, text: t.n + ' (town centre)' }));
+      try {
+        if (!GM.places) GM.places = await google.maps.importLibrary('places');
+        if (!GM.token) GM.token = new GM.places.AutocompleteSessionToken();
+        const r = await GM.places.AutocompleteSuggestion.fetchAutocompleteSuggestions({ input: v, sessionToken: GM.token, includedRegionCodes: ['my'], locationBias: { west: 99, east: 105, south: 0.5, north: 7.5 } });
+        for (const s of r.suggestions.slice(0, 5)) if (s.placePrediction) items.push({ pred: s.placePrediction, text: s.placePrediction.text.toString() });
+      } catch (e) { /* Places not enabled for the key: only towns are offered */ }
+      if (my !== seq) return;
+      box.innerHTML = items.map((it, i) => '<button type="button" data-i="' + i + '">' + esc(it.text) + '</button>').join('') + (items.length ? '<div class="small muted" style="padding:2px 8px">Powered by Google</div>' : '');
+      box.hidden = !items.length; box._items = items;
+    }, 250);
+  });
+  box.addEventListener('click', e => { const b = e.target.closest('button[data-i]'); if (b) choose(box._items[+b.dataset.i]); });
+  input.addEventListener('blur', () => setTimeout(close, 200));
+  input.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+}
 </script>
 
 <script id="ui">
@@ -682,26 +962,28 @@ const rm = n => 'RM ' + Math.round(n).toLocaleString('en-MY');
 const km = n => Math.round(n).toLocaleString('en-MY') + ' km';
 const SEED = 7;
 const STATE_LABEL = { outbound: 'Delivering bricks', unloading: 'Unloading', returning: 'Empty, heading home', factory: 'At factory' };
-const COLLS = ['jobs', 'assign', 'pings'];
+const COLLS = ['jobs', 'assign', 'pings', 'maint'];
 
 let S = Object.assign({}, DEFAULTS, LS.get('settings', {}));
 if (!FACTORIES.some(f => f.n === S.factory)) S.factory = DEFAULTS.factory;
 let F = factoryByName(S.factory);
 let trucks = initFleet(S, F, SEED);
-let M = null, selected = null, fitAll = true, tab = LS.get('tab', 'live'), review = null, dlgTab = 'add', addMode = 'manual';
+let M = null, selected = null, fitAll = true, review = null, addMode = 'manual', editId = null, oMode = 'list';
+let view = LS.get('view', 'dispatch'), dMode = LS.get('dMode', 'map');
+if (!['dispatch', 'orders', 'maint'].includes(view)) view = 'dispatch';
+if (!['map', 'jobsmap', 'list', 'cascade', 'un', 'all'].includes(dMode)) dMode = 'map';
 let toastT = null;
 PLAN_DATE = todayStr();
 
 function notify(msg) {
-  const el = $('#toast'), host = $('#jobsDlg').open ? $('#jobsDlg') : document.body;
-  if (el.parentNode !== host) host.appendChild(el);
+  const el = $('#toast');
   el.textContent = msg; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { el.hidden = true; }, 4500);
 }
 const saveSettings = () => LS.set('settings', S);
 
 /* ---------- data store: shared database when available, this browser otherwise ---------- */
 const store = {
-  mode: 'local', db: null, ready: false, data: { jobs: {}, assign: {}, pings: {} }, onChange: () => {},
+  mode: 'local', db: null, ready: false, data: { jobs: {}, assign: {}, pings: {}, maint: {} }, onChange: () => {},
   loadLocal() { for (const c of COLLS) this.data[c] = LS.get('c.' + c, {}); },
   persist(c) { if (this.mode === 'local') LS.set('c.' + c, this.data[c]); },
   async init() {
@@ -709,7 +991,7 @@ const store = {
     let db = null;
     try { db = window.claude && window.claude.use ? await window.claude.use('db') : null; } catch (e) { db = null; }
     if (db) {
-      this.db = db; this.mode = 'db'; this.data = { jobs: {}, assign: {}, pings: {} };
+      this.db = db; this.mode = 'db'; this.data = { jobs: {}, assign: {}, pings: {}, maint: {} };
       for (const c of COLLS) {
         db.collection(c).onSnapshot(snap => { const o = {}; snap.docs.forEach(d => { o[d.id] = d.data(); }); this.data[c] = o; this.ready = true; this.onChange(); },
           e => { this.err = e && e.code; this.onChange(); });
@@ -760,7 +1042,21 @@ function computeModel() {
   const effs = trucks.map(t => Object.assign({ truck: t }, effOf(t)));
   effs.forEach(e => { e.eligible = e.state === 'unloading' || e.state === 'returning'; });
   const plans = buildPlans(effs.map(e => ({ truck: e.truck, pos: e.pos, eligible: e.eligible })), jobs, assign, S, F);
-  M = { jobs, assign, effs, plans, byTruck: Object.fromEntries(effs.map(e => [e.truck.id, e])), jobById: Object.fromEntries(jobs.map(j => [j.id, j])) };
+  const status = {}, sugBy = {};
+  for (const o of Object.values(plans)) for (const x of o.suggested) sugBy[x.job.id] = { truckId: o.it.truck.id, ev: x.ev };
+  const starts = effs.filter(e => e.eligible);
+  for (const j of jobs) {
+    if (j.done) { status[j.id] = { kind: 'delivered', reasons: [] }; continue; }
+    if (assign[j.id]) { status[j.id] = { kind: 'accepted', truckId: assign[j.id], reasons: [] }; continue; }
+    if (sugBy[j.id]) { status[j.id] = { kind: 'suggested', truckId: sugBy[j.id].truckId, ev: sugBy[j.id].ev, reasons: [] }; continue; }
+    const af = areaFit(starts.map(e => e.pos), F, j, S);
+    if (!af.ok) { status[j.id] = { kind: 'out', miss: af.miss, reasons: [af.miss] }; continue; }
+    let reasons = [];
+    if (!starts.length) reasons = ['No truck is empty right now'];
+    else { const near = starts.slice().sort((a, b) => alongCross(a.pos, F, j.pickup).cross - alongCross(b.pos, F, j.pickup).cross)[0]; reasons = evaluateAdd({ truck: near.truck, pos: near.pos }, plans[near.truck.id].cur, j, S, F).reasons; if (!reasons.length) reasons = ['Another job took the space']; }
+    status[j.id] = { kind: 'open', reasons };
+  }
+  M = { jobs, assign, effs, plans, status, byTruck: Object.fromEntries(effs.map(e => [e.truck.id, e])), jobById: Object.fromEntries(jobs.map(j => [j.id, j])) };
 }
 const agoText = m => m < 60 ? m + ' min' : m < 1440 ? Math.floor(m / 60) + ' h ' + (m % 60) + ' min' : Math.floor(m / 1440) + ' d';
 const clockAt = m => new Date(Date.now() + m * 60000).toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -876,7 +1172,9 @@ function renderMap() {
         '<text x="' + (+X(p) + 9 * s) + '" y="' + (+Y(p) - 7 * s) + '" font-size="' + (10.5 * s) + '" font-family="var(--f-mono)" fill="var(--ink)" font-weight="500">' + e.truck.id + (n ? ' +' + n : '') + '</text></g>';
     }
   }
-  const el = $('#map'); el.setAttribute('viewBox', '0 0 ' + vbW.toFixed(1) + ' ' + vbH.toFixed(1)); el.innerHTML = g;
+  $('#map').toggleAttribute('hidden', GM.ok); $('#gmap').hidden = !GM.ok;
+  if (GM.ok) gDrawTrucks(focus); else { const el = $('#map'); el.setAttribute('viewBox', '0 0 ' + vbW.toFixed(1) + ' ' + vbH.toFixed(1)); el.innerHTML = g; }
+  $('#mapNote').textContent = GM.ok ? 'Google map. Route times use Google driving routes where they have loaded, and distance ÷ average speed otherwise. Loading time is added per stop.' : 'Schematic map. Distances are straight-line × 1.3 and times are distance ÷ average speed plus loading time, not Google route times.';
   $('#mapTitle').textContent = focus ? 'Truck ' + focus.id + ' · route home' : 'Where the trucks are';
   $('#backBtn').hidden = !focus; $('#fitBtn').hidden = !!focus; $('#fitBtn').textContent = fitAll ? 'Show whole peninsula' : 'Zoom to fleet';
   $('#legend').innerHTML = focus
@@ -888,6 +1186,7 @@ function renderMap() {
 function renderKpis() {
   const live = M.effs.filter(e => e.live).length, late = M.effs.length - live, empty = M.effs.filter(e => e.eligible).length;
   const accepted = Object.keys(M.assign).filter(id => M.jobById[id] && !M.jobById[id].done).length;
+  const sk = Object.values(M.status).map(x => x.kind), openN = sk.filter(k => k === 'open').length, outN = sk.filter(k => k === 'out').length;
   let sug = 0, gain = 0; for (const o of Object.values(M.plans)) for (const x of o.suggested) { sug++; gain += x.ev.gain; }
   $('#kpis').innerHTML =
     '<div class="kpi good"><div class="v">' + live + '<span class="muted" style="font-size:20px"> / ' + M.effs.length + '</span></div><div class="l">Trucks reporting live</div></div>' +
@@ -895,6 +1194,7 @@ function renderKpis() {
     '<div class="kpi"><div class="v">' + empty + '</div><div class="l">Empty trucks heading home</div></div>' +
     '<div class="kpi"><div class="v">' + accepted + '</div><div class="l">Return jobs accepted</div></div>' +
     '<div class="kpi"><div class="v">' + sug + '</div><div class="l">Return jobs suggested</div></div>' +
+    '<div class="kpi ' + (outN ? 'warn' : '') + '"><div class="v">' + openN + ' <span class="muted" style="font-size:20px">/ ' + outN + '</span></div><div class="l">Not assigned: in area / out of area</div></div>' +
     '<div class="kpi good"><div class="v">' + rm(gain) + '</div><div class="l">Extra margin if all suggestions approved</div></div>';
 }
 function renderSide() {
@@ -922,6 +1222,7 @@ function renderSide() {
       '<div class="chip"><b>' + fmtMin(pl.svcMin) + '</b><span>loading and unloading</span></div>' +
       '<div class="chip"><b>+' + km(pl.extraKm) + '</b><span>vs direct · +' + pl.extraHours.toFixed(1) + ' h</span></div>' +
       '<div class="chip"><b class="' + (pl.net > 0 ? 'pos' : 'neg') + '">' + rm(pl.net) + '</b><span>net of extra cost</span></div></div>';
+    h += '<p class="small muted" style="margin:-4px 0 12px">' + (GM.ok ? (pl.gLegs === pl.nLegs ? 'Drive times: Google routes, all ' + pl.nLegs + ' legs.' : 'Drive times: Google routes for ' + pl.gLegs + ' of ' + pl.nLegs + ' legs, the rest estimated.') : 'Drive times: estimated from distance.') + '</p>';
     h += '<h3 style="margin-bottom:6px">Jobs on this route</h3><div class="jobs-list">' + jobsHere.map(x => {
       const j = x.job;
       return '<div class="jobcard' + (x.acc ? '' : ' sug') + '"><div class="top"><span><b class="mono">' + esc(j.id) + '</b> · ' + esc(j.pickup.label) + ' → ' + esc(j.drop.label) + '</span>' +
@@ -942,8 +1243,11 @@ function renderSide() {
   box.innerHTML = h;
 }
 
-/* ---------- jobs tab ---------- */
-const MHEAD = '<thead><tr><th>Truck</th><th>Job</th><th class="r">Load</th><th class="r">Off route<br>pick-up / drop-off</th><th class="r">Price</th><th class="r">Net gain</th><th></th></tr></thead>';
+/* ---------- shared bits ---------- */
+const KIND_LABEL = { accepted: 'Accepted', suggested: 'Suggested', open: 'Open, in the area', out: 'Out of the area', delivered: 'Delivered' };
+const KIND_COLOR = { accepted: 'var(--ok)', suggested: 'var(--accent)', open: 'var(--warn)', out: 'var(--crit)', delivered: 'var(--muted)' };
+const kindPill = k => '<span class="pill k-' + k + '">' + KIND_LABEL[k] + '</span>';
+const statusOf = j => (M.status && M.status[j.id]) || { kind: 'open', reasons: [] };
 function jobCell(j) {
   return '<b class="mono">' + esc(j.id) + '</b> ' + esc(j.pickup.label) + (j.pickup.kind === 'pin' ? ' <span class="pill info">pin</span>' : '') + ' → ' + esc(j.drop.label) + (j.drop.kind === 'pin' ? ' <span class="pill info">pin</span>' : '') +
     '<br><span class="muted small">' + esc(j.cargo || '') + (j.cargo && j.date ? ' · ' : '') + (j.date ? esc(dateWord(j.date)) : '') + '</span>';
@@ -951,6 +1255,14 @@ function jobCell(j) {
 function dateWord(d) { const n = dayDiff(d, todayStr()); return (n === 0 ? 'today' : n > 0 ? 'in ' + n + ' d' : -n + ' d ago') + ' (' + d + ')'; }
 const loadCell = j => j.pallets + ' plt<br><span class="muted small">' + j.cbm + ' m³ · ' + j.tonnes + ' t</span>';
 const truckCell = t => '<span class="mono">' + esc(t.id) + '</span> ' + esc(t.plate) + '<br><span class="muted small">' + esc(t.driver) + '</span>';
+const whyText = st => st.kind === 'out' ? (st.miss || 'Not along any empty truck\'s way home') : (st.reasons && st.reasons.length ? st.reasons.slice(0, 2).join('; ') : '');
+
+/* ---------- dispatch: list views ---------- */
+const MHEAD = '<thead><tr><th>Truck</th><th>Job</th><th class="r">Load</th><th class="r">Off route<br>pick-up / drop-off</th><th class="r">Price</th><th class="r">Net gain</th><th></th></tr></thead>';
+function renderPlan() {
+  const held = M.jobs.filter(j => !j.done && !M.assign[j.id] && !jobDue(j)).length;
+  $('#planNote').textContent = 'Planning ' + dateWord(PLAN_DATE).replace(/ \(.*\)/, '') + '. ' + (held ? held + ' open job' + (held > 1 ? 's' : '') + ' dated outside the 7 days up to this day ' + (held > 1 ? 'are' : 'is') + ' held back.' : 'No jobs are held back.');
+}
 function renderJobs() {
   let rows = [], total = 0, count = 0;
   for (const o of Object.values(M.plans)) for (const x of o.suggested) {
@@ -959,11 +1271,9 @@ function renderJobs() {
       '<td><button class="btn primary sm" type="button" data-act="approve" data-j="' + esc(x.job.id) + '" data-t="' + o.it.truck.id + '">Approve</button> <button class="btn sm" type="button" data-act="select" data-t="' + o.it.truck.id + '">Route</button></td></tr>');
   }
   $('#sugSummary').textContent = count + ' suggested · ' + rm(total) + ' extra margin';
-  const held = M.jobs.filter(j => !j.done && !M.assign[j.id] && !jobDue(j)).length;
-  $('#planNote').textContent = 'Planning ' + dateWord(PLAN_DATE).replace(/ \(.*\)/, '') + '. ' + (held ? held + ' open job' + (held > 1 ? 's' : '') + ' dated outside the 7 days up to this day ' + (held > 1 ? 'are' : 'is') + ' held back.' : 'No jobs are held back.');
   $('#approveAll').disabled = !count;
   $('#suggestions').innerHTML = rows.length ? '<table>' + MHEAD + '<tbody>' + rows.join('') + '</tbody></table>'
-    : '<p class="empty-state">' + (M.jobs.length ? 'No open job fits an empty truck right now. Add jobs, loosen the rules above, or move time on.' : 'No jobs yet. Use “Add or import jobs” to add one, or open “Jobs on the board” to load sample jobs.') + '</p>';
+    : '<p class="empty-state">' + (M.jobs.length ? 'No open job fits an empty truck right now. See “Not assigned” for why, or move time on.' : 'No jobs yet. The Orders desk is where jobs are keyed in.') + '</p>';
   const ap = [];
   for (const o of Object.values(M.plans)) for (const st of o.planAccepted.stops) if (st.kind === 'pickup') {
     const drop = o.planAccepted.stops.find(s => s.kind === 'drop' && s.job.id === st.job.id);
@@ -972,86 +1282,138 @@ function renderJobs() {
   }
   $('#approved').innerHTML = ap.length ? '<table><thead><tr><th>Truck</th><th>Job</th><th class="r">Load</th><th class="r">Pick-up ETA</th><th class="r">Drop-off ETA</th><th class="r">Price</th><th></th></tr></thead><tbody>' + ap.join('') + '</tbody></table>'
     : '<p class="empty-state">Nothing accepted yet. Approve a suggestion above or from a truck\'s route.</p>';
-  renderOptions();
 }
-function renderOptions() {
-  const id = $('#opt-truck').value, e = M.byTruck[id];
-  if (!e) { $('#options').innerHTML = ''; return; }
-  if (!e.eligible) { $('#options').innerHTML = '<p class="empty-state">Truck ' + esc(id) + ' is not empty right now (' + esc(STATE_LABEL[e.state].toLowerCase()) + ').</p>'; return; }
-  const o = M.plans[id], rows = M.jobs.filter(j => !j.done && !M.assign[j.id]).map(j => ({ j, ev: evaluateAdd({ truck: e.truck, pos: e.pos }, o.accepted, j, S, F) }))
-    .sort((a, b) => (b.ev.ok - a.ev.ok) || (b.ev.gain - a.ev.gain));
-  $('#options').innerHTML = rows.length ? '<table><thead><tr><th>Job</th><th class="r">Load</th><th class="r">Off route<br>pick-up / drop-off</th><th class="r">Price</th><th class="r">Net gain</th><th>Fit</th></tr></thead><tbody>' + rows.map(x =>
-    '<tr><td>' + jobCell(x.j) + '</td><td class="r">' + loadCell(x.j) + '</td><td class="r">' + Math.round(x.ev.pkOff) + ' / ' + Math.round(x.ev.dpOff) + ' km</td><td class="r">' + rm(x.j.rate) + '</td><td class="r ' + (x.ev.gain > 0 ? 'pos' : 'neg') + '">' + rm(x.ev.gain) + '</td><td>' +
-    (x.ev.ok ? '<button class="btn primary sm" type="button" data-act="approve" data-j="' + esc(x.j.id) + '" data-t="' + esc(id) + '">Approve</button>' : '<span class="pill late">' + esc(x.ev.reasons[0]) + '</span>') + '</td></tr>').join('') + '</tbody></table>'
-    : '<p class="empty-state">No open jobs.</p>';
+const openTrucks = new Set();
+function renderCascade() {
+  const list = Object.values(M.plans).sort((a, b) => (b.accepted.length + b.suggested.length) - (a.accepted.length + a.suggested.length) || a.it.truck.id.localeCompare(b.it.truck.id));
+  $('#cascade').innerHTML = list.map(o => {
+    const t = o.it.truck, e = M.byTruck[t.id], pl = o.planAll, n = o.accepted.length, s2 = o.suggested.length;
+    const jobs = o.accepted.map(j => ({ job: j, acc: true })).concat(o.suggested.map(x => ({ job: x.job, acc: false, ev: x.ev })));
+    const body = jobs.length ? jobs.map(x => '<div class="jobcard' + (x.acc ? '' : ' sug') + '"><div class="top"><span><b class="mono">' + esc(x.job.id) + '</b> · ' + esc(x.job.pickup.label) + ' → ' + esc(x.job.drop.label) + '</span>' + kindPill(x.acc ? 'accepted' : 'suggested') + '</div>' +
+        '<div class="muted small">' + x.job.pallets + ' pallets · ' + x.job.cbm + ' m³ · ' + x.job.tonnes + ' t · ' + rm(x.job.rate) + (x.ev ? ' · net gain ' + rm(x.ev.gain) : '') + '</div>' +
+        '<div class="row">' + (x.acc ? '<button class="btn sm danger" type="button" data-act="cancel" data-j="' + esc(x.job.id) + '">Cancel job</button>' : '<button class="btn primary sm" type="button" data-act="approve" data-j="' + esc(x.job.id) + '" data-t="' + t.id + '">Approve</button>') + '</div></div>').join('') +
+      '<div class="row"><span class="small muted">Home by ' + clockAt(pl.totalMin) + ' (direct ' + clockAt(pl.baseMin) + ') · +' + km(pl.extraKm) + ' · net ' + rm(pl.net) + '</span>' + (s2 ? '<button class="btn primary sm" type="button" data-act="approveTruck" data-t="' + t.id + '">Approve all suggested</button>' : '') + '<button class="btn sm" type="button" data-act="select" data-t="' + t.id + '">Route on map</button></div>'
+      : '<p class="small muted">' + (e.eligible ? 'Nothing fits along this truck\'s way home right now.' : 'Jobs are suggested once the truck is empty (now: ' + esc(STATE_LABEL[e.state].toLowerCase()) + ').') + '</p>';
+    return '<details class="tr" data-id="' + t.id + '"' + (openTrucks.has(t.id) ? ' open' : '') + '><summary><b>' + esc(t.id) + '</b><span>' + esc(t.plate) + ' · ' + esc(t.driver) + '</span><span class="pill ' + (e.live ? 'live' : 'late') + '">' + (e.live ? 'Live' : 'Delayed ' + agoText(e.ago)) + '</span><span class="small muted">' + n + ' accepted, ' + s2 + ' suggested</span></summary><div class="in">' + body + '</div></details>';
+  }).join('');
+}
+function renderUn() {
+  const rows = M.jobs.filter(j => { const k = statusOf(j).kind; return k === 'open' || k === 'out'; }).sort((a, b) => (statusOf(a).kind === 'out') - (statusOf(b).kind === 'out') || a.id.localeCompare(b.id));
+  const out = rows.filter(j => statusOf(j).kind === 'out').length;
+  $('#unSummary').textContent = rows.length + ' not assigned · ' + out + ' out of the area';
+  $('#unTable').innerHTML = rows.length ? '<table><thead><tr><th>Job</th><th class="r">Load</th><th class="r">Price</th><th>Where it stands</th><th>Why</th></tr></thead><tbody>' + rows.map(j => { const st = statusOf(j);
+    return '<tr><td>' + jobCell(j) + '</td><td class="r">' + loadCell(j) + '</td><td class="r">' + rm(j.rate) + '</td><td>' + kindPill(st.kind) + '</td><td class="small">' + esc(whyText(st)) + '</td></tr>'; }).join('') + '</tbody></table>'
+    : '<p class="empty-state">Every open job is accepted or suggested.</p>';
+}
+function renderAllJobs() {
+  const f = $('#allFilter').value, rows = M.jobs.filter(j => f === 'all' || statusOf(j).kind === f);
+  $('#allTable').innerHTML = rows.length ? '<table><thead><tr><th>Job</th><th class="r">Load</th><th class="r">Price</th><th>Status</th><th>Truck / reason</th><th></th></tr></thead><tbody>' + rows.map(j => { const st = statusOf(j), t = st.truckId && truckById(st.truckId);
+    return '<tr><td>' + jobCell(j) + '</td><td class="r">' + loadCell(j) + '</td><td class="r">' + rm(j.rate) + '</td><td>' + kindPill(st.kind) + '</td><td class="small">' + (t ? esc(tLabel(t)) + ' · ' + esc(t.driver) : esc(whyText(st))) + '</td><td>' +
+      (st.kind === 'suggested' ? '<button class="btn primary sm" type="button" data-act="approve" data-j="' + esc(j.id) + '" data-t="' + st.truckId + '">Approve</button>' : st.kind === 'accepted' ? '<button class="btn sm danger" type="button" data-act="cancel" data-j="' + esc(j.id) + '">Cancel</button>' : '') + '</td></tr>'; }).join('') + '</tbody></table>'
+    : '<p class="empty-state">No jobs in this group.</p>';
 }
 
-/* ---------- costs tab ---------- */
-function renderCosts() {
+/* ---------- job map (dispatch and orders desk) ---------- */
+function jobsSvg(svgId, legId, jobs, effs) {
+  const pts = [F]; jobs.forEach(j => pts.push(j.pickup, j.drop)); effs.forEach(e => pts.push(e.pos));
+  const b = pts.length > 1 ? fitBounds(pts, 1) : { lat0: 1.1, lat1: 6.6, lon0: 99.9, lon1: 104.5 };
+  const k = 100, vbW = (b.lon1 - b.lon0) * k, vbH = (b.lat1 - b.lat0) * k, s = vbW / 640;
+  const X = p => ((p.lon - b.lon0) * k).toFixed(1), Y = p => ((b.lat1 - p.lat) * k).toFixed(1);
+  let g = '<path d="M' + COAST.map(c => X({ lon: c[1] }) + ' ' + Y({ lat: c[0] })).join(' L') + ' Z" fill="var(--land)" stroke="var(--line)" stroke-width="' + (1.2 * s) + '"/>';
+  const wide = (b.lon1 - b.lon0) > 3;
+  for (const t of TOWNS) { if (t.n === F.n || t.lat < b.lat0 || t.lat > b.lat1 || t.lon < b.lon0 || t.lon > b.lon1 || (wide && !t.m)) continue;
+    g += '<circle cx="' + X(t) + '" cy="' + Y(t) + '" r="' + (2 * s) + '" fill="var(--muted)" opacity=".5"/><text x="' + (+X(t) + 4 * s) + '" y="' + (+Y(t) + 3.5 * s) + '" font-size="' + (10 * s) + '" fill="var(--muted)" font-family="var(--f-body)">' + esc(t.n) + '</text>'; }
+  const label = jobs.length <= 14;
+  for (const j of jobs) {
+    const kd = statusOf(j).kind, c = KIND_COLOR[kd], x1 = X(j.pickup), y1 = Y(j.pickup), x2 = X(j.drop), y2 = Y(j.drop);
+    g += '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" stroke="' + c + '" stroke-width="' + (2.4 * s) + '" stroke-linecap="round"' + (kd === 'suggested' ? ' stroke-dasharray="' + (7 * s) + ' ' + (5 * s) + '"' : '') + ' opacity=".85"/>' +
+      '<circle cx="' + x1 + '" cy="' + y1 + '" r="' + (5 * s) + '" fill="' + c + '" stroke="var(--surface)" stroke-width="' + (1.2 * s) + '"/>' +
+      '<rect x="' + (x2 - 4.5 * s) + '" y="' + (y2 - 4.5 * s) + '" width="' + (9 * s) + '" height="' + (9 * s) + '" fill="' + c + '" stroke="var(--surface)" stroke-width="' + (1.2 * s) + '" transform="rotate(45 ' + x2 + ' ' + y2 + ')"/>';
+    if (label) g += '<text x="' + ((+x1 + +x2) / 2 + 4 * s) + '" y="' + ((+y1 + +y2) / 2 - 3 * s) + '" font-size="' + (9.5 * s) + '" font-family="var(--f-mono)" fill="var(--ink)" stroke="var(--land)" stroke-width="' + (3 * s) + '" paint-order="stroke">' + esc(j.id) + '</text>';
+  }
+  g += '<rect x="' + (X(F) - 7 * s) + '" y="' + (Y(F) - 7 * s) + '" width="' + (14 * s) + '" height="' + (14 * s) + '" fill="var(--ink)"/><text x="' + (+X(F) + 11 * s) + '" y="' + (+Y(F) + 4 * s) + '" font-size="' + (12 * s) + '" font-weight="700" fill="var(--ink)" stroke="var(--land)" stroke-width="' + (3 * s) + '" paint-order="stroke" font-family="var(--f-body)">Factory · ' + esc(F.n) + '</text>';
+  for (const e of effs) g += '<circle cx="' + X(e.pos) + '" cy="' + Y(e.pos) + '" r="' + (6.5 * s) + '" fill="var(--s-' + e.state + ')" stroke="var(--surface)" stroke-width="' + (1.5 * s) + '"/><text x="' + (+X(e.pos) + 9 * s) + '" y="' + (+Y(e.pos) - 7 * s) + '" font-size="' + (10.5 * s) + '" font-family="var(--f-mono)" fill="var(--ink)" stroke="var(--land)" stroke-width="' + (3 * s) + '" paint-order="stroke" font-weight="500">' + e.truck.id + '</text>';
+  const gid = svgId.replace('map', 'gmap'); $(svgId).toggleAttribute('hidden', GM.ok); $(gid).hidden = !GM.ok;
+  if (GM.ok) gDrawJobs(svgId, jobs, effs); else { const el = $(svgId); el.setAttribute('viewBox', '0 0 ' + vbW.toFixed(1) + ' ' + vbH.toFixed(1)); el.innerHTML = g; }
+  const used = [...new Set(jobs.map(j => statusOf(j).kind))];
+  $(legId).innerHTML = used.map(kd => '<span><i class="dot" style="background:' + KIND_COLOR[kd] + '"></i>' + KIND_LABEL[kd] + '</span>').join('') + '<span>Circle = pick-up, diamond = drop-off</span>' + (effs.length ? '<span>Coloured dot = truck</span>' : '');
+}
+function renderJobsMap() {
+  const id = $('#jm-truck').value;
+  let jobs, effs;
+  if (id && M.plans[id]) { const o = M.plans[id]; jobs = o.accepted.concat(o.suggested.map(x => x.job)); effs = [M.byTruck[id]]; }
+  else { jobs = M.jobs.filter(j => !j.done); effs = M.effs; }
+  jobsSvg('#jmap', '#jmLegend', jobs, effs);
+}
+
+/* ---------- orders desk ---------- */
+let confirmId = null, confirmT = null;
+function locInput(l) { return l.kind === 'pin' ? l.lat.toFixed(5) + ', ' + l.lon.toFixed(5) : l.label; }
+function renderOrders() {
+  const q = $('#oSearch').value.trim().toLowerCase();
+  const rows = M.jobs.filter(j => !q || [j.id, j.pickup.label, j.drop.label, j.cargo, j.source].join(' ').toLowerCase().includes(q));
+  const sampleCount = M.jobs.filter(j => j.source === 'Sample').length;
+  $('#loadSamples').hidden = sampleCount > 0; $('#clearSample').hidden = sampleCount === 0;
+  $('#orderCount').textContent = rows.length + ' of ' + M.jobs.length + ' jobs';
+  $$('#oMode button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === oMode)));
+  $('#orderTable').hidden = oMode !== 'list'; $('#orderMapBox').hidden = oMode !== 'map';
+  const locTxt = l => esc(l.label) + (l.kind === 'pin' ? ' <span class="pill info">pin</span>' : ' <span class="pill plain">town centre</span>');
+  if (oMode === 'map') { jobsSvg('#omap', '#omLegend', rows, []); return; }
+  $('#orderTable').innerHTML = rows.length ? '<table><thead><tr><th>Job</th><th>Date</th><th>Pick-up</th><th>Drop-off</th><th class="r">Pallets</th><th class="r">Size L × W × H m</th><th class="r">m³</th><th class="r">Tonnes</th><th class="r">Price</th><th>Cargo</th><th>Source</th><th>Status</th><th></th></tr></thead><tbody>' +
+    rows.map(j => {
+      const st = statusOf(j), tid = st.truckId, stx = st.kind === 'accepted' ? '<span class="pill k-accepted">Truck ' + esc(tid) + '</span>' : kindPill(st.kind);
+      const sure = confirmId === j.id;
+      return '<tr' + (editId === j.id ? ' style="background:var(--accent-soft)"' : '') + '><td class="mono">' + esc(j.id) + '</td><td>' + (j.date ? esc(dateWord(j.date)) : '<span class="muted">any day</span>') + '</td><td>' + locTxt(j.pickup) + '</td><td>' + locTxt(j.drop) + '</td><td class="r">' + j.pallets + '</td><td class="r">' + (j.l ? j.l + ' × ' + j.w + ' × ' + j.h : '-') + '</td><td class="r">' + j.cbm + '</td><td class="r">' + j.tonnes + '</td><td class="r">' + rm(j.rate) + '</td><td>' + esc(j.cargo) + '</td><td>' + esc(j.source) + '</td><td>' + stx + '</td>' +
+        '<td style="white-space:nowrap"><button class="btn sm" type="button" data-act="edit" data-j="' + esc(j.id) + '">Edit</button> <button class="btn sm danger" type="button" data-act="remove" data-j="' + esc(j.id) + '">' + (sure ? 'Sure? Remove' : 'Remove') + '</button></td></tr>';
+    }).join('') + '</tbody></table>' : '<p class="empty-state">' + (M.jobs.length ? 'No job matches the search.' : 'No jobs yet. Add one above, import a list, or load sample jobs.') + '</p>';
+}
+function startEdit(id) {
+  const j = store.data.jobs[id]; if (!j) return;
+  editId = id; setAddMode('manual');
+  $('#of-pick').value = locInput(j.pickup); $('#of-drop').value = locInput(j.drop);
+  const lm = ['pallets', 'dims', 'volume'].includes(j.mode) ? j.mode : 'pallets'; $('#of-lm').value = lm;
+  $('#of-pal').value = j.pallets ?? ''; $('#of-l').value = j.l ?? ''; $('#of-w').value = j.w ?? ''; $('#of-h').value = j.h ?? ''; $('#of-cbm').value = j.cbm ?? '';
+  $('#of-ton').value = j.tonnes ?? ''; $('#of-rate').value = j.rate ?? ''; $('#of-cargo').value = j.cargo || ''; $('#of-date').value = j.date || todayStr();
+  hintFor('#of-pick', '#of-pickHint'); hintFor('#of-drop', '#of-dropHint'); updateDerived();
+  $('#formTitle').textContent = 'Edit job ' + id; $('#ofSubmit').textContent = 'Save changes'; $('#ofCancel').hidden = false;
+  const tid = store.data.assign[id] && store.data.assign[id].truckId;
+  $('#editBar').hidden = false; $('#editBar').textContent = 'Editing ' + id + (tid ? '. It is accepted for truck ' + tid + ' and stays there; dispatch will see the new details.' : '.');
+  $('#ofMsg').textContent = ''; $('#dp-add').scrollIntoView({ behavior: 'smooth', block: 'start' }); renderOrders();
+}
+function endEdit() {
+  editId = null; $('#formTitle').textContent = 'Add a job'; $('#ofSubmit').textContent = 'Add job'; $('#ofCancel').hidden = true; $('#editBar').hidden = true; $('#orderForm').reset();
+  $('#of-date').value = todayStr(); $('#of-pickHint').textContent = ''; $('#of-dropHint').textContent = ''; updateDerived(); renderOrders();
+}
+
+/* ---------- maintenance ---------- */
+function renderMaint() {
   const c = perKm(S), dh = driverHr(S);
   $('#costBreak').innerHTML = '<div><b>' + rm(c.loaded * 100) + '</b><span>per 100 km loaded</span></div><div><b>' + rm(c.empty * 100) + '</b><span>per 100 km empty</span></div>' +
     '<div><b>RM ' + c.fuelLoaded.toFixed(2) + '</b><span>fuel per km, loaded</span></div><div><b>RM ' + c.tyre.toFixed(2) + '</b><span>tyres per km</span></div>' +
     '<div><b>RM ' + c.svc.toFixed(2) + '</b><span>servicing per km</span></div><div><b>RM ' + dh.toFixed(2) + '</b><span>driver per hour</span></div>';
+  const rows = trucks.map(t => ({ t, w: wearOf(t, store.data.maint[t.id], S), k: truckCosts(t, S) }));
   let tot = 0, emptyKm = 0, emptyCost = 0, allKm = 0;
-  const rows = trucks.map(t => {
-    const cost = (t.mtdKm - t.mtdEmpty) * c.loaded + t.mtdEmpty * c.empty + t.mtdKm / S.speed * dh, eCost = t.mtdEmpty * c.empty + t.mtdEmpty / S.speed * dh;
-    tot += cost; emptyKm += t.mtdEmpty; emptyCost += eCost; allKm += t.mtdKm;
-    const svcPct = t.kmSvc / S.serviceKm, tyrePct = t.tyreKm / S.tyreLife;
-    const sv = svcPct >= 1 ? ['crit', 'Overdue'] : svcPct >= .9 ? ['late', 'Due soon'] : ['ok', 'OK'], ty = tyrePct >= 1 ? ['crit', 'Replace'] : tyrePct >= .85 ? ['late', 'Check'] : ['ok', 'OK'];
-    const bc = p => p >= 1 ? 'crit' : p >= .85 ? 'warn' : '';
+  const bc = p => p >= 1 ? 'crit' : p >= .85 ? 'warn' : '';
+  const body = rows.map(({ t, w, k }) => {
+    tot += k.cost; emptyKm += t.mtdEmpty; emptyCost += k.eCost; allKm += t.mtdKm;
+    const sv = w.svcPct >= 1 ? ['crit', 'Overdue'] : w.svcPct >= .9 ? ['late', 'Due soon'] : ['ok', 'OK'], ty = w.tyrePct >= 1 ? ['crit', 'Replace'] : w.tyrePct >= .85 ? ['late', 'Check'] : ['ok', 'OK'];
     return '<tr><td>' + truckCell(t) + '</td><td class="r">' + Math.round(t.odo).toLocaleString('en-MY') + '</td>' +
       '<td class="r">' + Math.round(t.mtdKm).toLocaleString('en-MY') + '<br><span class="muted small">' + Math.round(t.mtdEmpty / t.mtdKm * 100) + '% empty</span></td>' +
-      '<td><span class="bar ' + bc(svcPct) + '"><i style="width:' + clamp(svcPct * 100, 0, 100) + '%"></i></span><span class="small muted">' + Math.round(t.kmSvc).toLocaleString('en-MY') + ' / ' + S.serviceKm.toLocaleString('en-MY') + ' km</span> <span class="pill ' + sv[0] + '">' + sv[1] + '</span></td>' +
-      '<td><span class="bar ' + bc(tyrePct) + '"><i style="width:' + clamp(tyrePct * 100, 0, 100) + '%"></i></span><span class="small muted">' + Math.round(tyrePct * 100) + '% worn</span> <span class="pill ' + ty[0] + '">' + ty[1] + '</span></td>' +
-      '<td class="r">' + rm(cost) + '</td><td class="r">' + rm(eCost) + '</td></tr>';
-  });
-  $('#maintTable').innerHTML = '<table><thead><tr><th>Truck</th><th class="r">Odometer km</th><th class="r">Km this month</th><th>Service</th><th>Tyres</th><th class="r">Cost this month</th><th class="r">Of which empty runs</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+      '<td><span class="bar ' + bc(w.svcPct) + '"><i style="width:' + clamp(w.svcPct * 100, 0, 100) + '%"></i></span><span class="small muted">' + Math.round(w.svcUsed).toLocaleString('en-MY') + ' / ' + S.serviceKm.toLocaleString('en-MY') + ' km</span> <span class="pill ' + sv[0] + '">' + sv[1] + '</span></td>' +
+      '<td><span class="bar ' + bc(w.tyrePct) + '"><i style="width:' + clamp(w.tyrePct * 100, 0, 100) + '%"></i></span><span class="small muted">' + Math.round(w.tyrePct * 100) + '% worn</span> <span class="pill ' + ty[0] + '">' + ty[1] + '</span></td>' +
+      '<td class="r">' + rm(k.cost) + '<br><span class="muted small">RM ' + k.perKm.toFixed(2) + ' / km</span></td><td class="r">' + rm(k.eCost) + '</td>' +
+      '<td style="white-space:nowrap"><button class="btn sm" type="button" data-act="svcDone" data-t="' + t.id + '">Service done</button> <button class="btn sm" type="button" data-act="tyreDone" data-t="' + t.id + '">Tyres changed</button></td></tr>';
+  }).join('');
+  $('#maintTable').innerHTML = '<table><thead><tr><th>Truck</th><th class="r">Odometer km</th><th class="r">Km this month</th><th>Service</th><th>Tyres</th><th class="r">Cost this month</th><th class="r">Of which empty runs</th><th>Log work</th></tr></thead><tbody>' + body + '</tbody></table>';
   $('#fleetTotals').innerHTML = '<div><b>' + rm(tot) + '</b><span>running cost, 16 trucks</span></div><div><b>' + Math.round(allKm).toLocaleString('en-MY') + ' km</b><span>driven</span></div>' +
     '<div><b>' + Math.round(emptyKm / allKm * 100) + '%</b><span>of km are empty returns</span></div><div><b>' + rm(emptyCost) + '</b><span>spent driving empty</span></div>';
+  const al = maintAlerts(rows, S);
+  const crit = al.filter(a => a.lvl === 'crit').length;
+  $('#alertSummary').textContent = al.length ? al.length + ' alerts · ' + crit + ' urgent' : 'All clear';
+  $('#alerts').innerHTML = al.length ? al.map(a => '<div class="alert"><span class="pill ' + (a.lvl === 'crit' ? 'crit' : a.lvl === 'warn' ? 'late' : 'info') + '">' + (a.lvl === 'crit' ? 'Urgent' : a.lvl === 'warn' ? 'Soon' : 'Note') + '</span><div><span class="who">' + esc(a.t.id) + '</span> ' + esc(a.t.plate) + ' · ' + esc(a.t.driver) + ' · <b>' + esc(a.title) + '</b></div>' +
+    (a.rank === 0 || a.rank === 2 ? '<button class="btn sm" type="button" data-act="svcDone" data-t="' + a.t.id + '">Service done</button>' : a.rank === 1 || a.rank === 3 ? '<button class="btn sm" type="button" data-act="tyreDone" data-t="' + a.t.id + '">Tyres changed</button>' : '<span></span>') +
+    '<div class="sub">' + esc(a.sub) + '</div></div>').join('') : '<p class="empty-state">No service, tyre or cost alerts today.</p>';
 }
-
-/* ---------- jobs sheet ---------- */
-function renderBoard() {
-  const sampleCount = M.jobs.filter(j => j.source === 'Sample').length;
-  $('#loadSamples').hidden = sampleCount > 0; $('#clearSample').hidden = sampleCount === 0;
-  const locTxt = l => esc(l.label) + (l.kind === 'pin' ? ' <span class="pill info">pin</span>' : ' <span class="pill plain">town centre</span>');
-  $('#orderTable').innerHTML = M.jobs.length ? '<table><thead><tr><th>Job</th><th>Date</th><th>Pick-up</th><th>Drop-off</th><th class="r">Pallets</th><th class="r">Size L × W × H m</th><th class="r">m³</th><th class="r">Tonnes</th><th class="r">Price</th><th>Cargo</th><th>Source</th><th>Status</th><th></th></tr></thead><tbody>' +
-    M.jobs.map(j => {
-      const tid = M.assign[j.id], st = j.done ? '<span class="pill ok">Delivered</span>' : tid ? '<span class="pill info">Truck ' + esc(tid) + '</span>' : '<span class="pill late">Open</span>';
-      return '<tr><td class="mono">' + esc(j.id) + '</td><td>' + (j.date ? esc(dateWord(j.date)) : '<span class="muted">any day</span>') + '</td><td>' + locTxt(j.pickup) + '</td><td>' + locTxt(j.drop) + '</td><td class="r">' + j.pallets + '</td><td class="r">' + (j.l ? j.l + ' × ' + j.w + ' × ' + j.h : '-') + '</td><td class="r">' + j.cbm + '</td><td class="r">' + j.tonnes + '</td><td class="r">' + rm(j.rate) + '</td><td>' + esc(j.cargo) + '</td><td>' + esc(j.source) + '</td><td>' + st + '</td>' +
-        '<td><button class="btn sm danger" type="button" data-act="remove" data-j="' + esc(j.id) + '">Remove</button></td></tr>';
-    }).join('') + '</tbody></table>' : '<p class="empty-state">No jobs yet. Add one from the “Add job” tab, or load sample jobs.</p>';
-}
-function setDlgTab(name) {
-  dlgTab = name;
-  $$('#jobsDlg .dtabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.dt === name)));
-  $('#dp-add').hidden = name !== 'add'; $('#dp-board').hidden = name !== 'board';
-}
-function setAddMode(m) {
-  addMode = m; $$('#addMode button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
-  $('#orderForm').hidden = m !== 'manual'; $('#importBox').hidden = m !== 'import';
-}
-function openDlg(t, m) { setDlgTab(t); if (m) setAddMode(m); if (!$('#jobsDlg').open) $('#jobsDlg').showModal(); renderBoard(); }
-function hintFor(inputId, hintId) {
-  const v = $(inputId).value.trim(), h = $(hintId);
-  if (!v) { h.textContent = ''; h.className = 'hint'; return null; }
-  const loc = parseLocation(v);
-  if (loc && !loc.error) { h.textContent = (loc.kind === 'pin' ? '✓ Exact pin: ' : '✓ Town centre: ') + loc.label + ' · ' + loc.lat.toFixed(4) + ', ' + loc.lon.toFixed(4); h.className = 'hint good'; return loc; }
-  h.textContent = loc ? loc.error : ''; h.className = 'hint bad'; return null;
-}
-function formLoad() {
-  const mode = $('#of-lm').value, x = {};
-  if (mode === 'pallets') x.pallets = +$('#of-pal').value;
-  else if (mode === 'dims') { x.l = +$('#of-l').value; x.w = +$('#of-w').value; x.h = +$('#of-h').value; }
-  else x.cbm = +$('#of-cbm').value;
-  return deriveLoad(x, S);
-}
-function updateDerived() {
-  const mode = $('#of-lm').value;
-  $$('.lm').forEach(el => { el.hidden = !el.classList.contains('lm-' + mode); });
-  const d = formLoad(); $('#of-derived').textContent = d ? 'Counted as ' + d.pallets + ' pallets · ' + d.cbm + ' m³ (' + (mode === 'pallets' ? 'volume estimated at ' + S.palletCbm + ' m³ per pallet' : mode === 'volume' ? 'pallets estimated from volume' : 'pallets estimated from volume') + ')' : 'Enter the load to see how it is counted.';
-}
-function newJobId() { return 'J-' + Math.random().toString(36).slice(2, 7).toUpperCase(); }
 
 /* CSV / photo review */
 function showReview(rows, src) {
@@ -1107,43 +1469,102 @@ function cfgChange(e) {
 let rafQ = 0;
 function scheduleRender() { if (rafQ) return; rafQ = requestAnimationFrame(() => { rafQ = 0; renderAll(); }); }
 function fillTruckSelects() {
-  const o = trucks.map(t => '<option value="' + t.id + '">' + esc(tFull(t)) + '</option>').join('');
-  const keep = $('#opt-truck').value; $('#opt-truck').innerHTML = o; if (keep) $('#opt-truck').value = keep;
+  const keep = $('#jm-truck').value;
+  $('#jm-truck').innerHTML = '<option value="">All trucks</option>' + trucks.map(t => '<option value="' + t.id + '">' + esc(tFull(t)) + '</option>').join('');
+  if (keep && truckById(keep)) $('#jm-truck').value = keep;
 }
+const VIEW_DESC = { dispatch: 'Dispatcher: see every truck and job, approve suggested jobs onto truck routes.', orders: 'Orders clerk: key in, edit and remove jobs; see them on a list or a map.', maint: 'Workshop and office: running cost and service or tyre alerts.' };
+const HASH_VIEW = { dispatch: 'dispatch', orders: 'orders', maintenance: 'maint' };
 function renderAll() {
   if (location.hash === '#driver') { renderDriver(); return; }
   computeModel();
-  renderKpis(); renderMap(); renderSide(); renderJobs(); renderCosts();
-  if ($('#jobsDlg').open) renderBoard();
+  if (view === 'dispatch') {
+    renderKpis(); renderPlan();
+    if (dMode === 'map') { renderMap(); renderSide(); }
+    else if (dMode === 'jobsmap') renderJobsMap();
+    else if (dMode === 'list') renderJobs();
+    else if (dMode === 'cascade') renderCascade();
+    else if (dMode === 'un') renderUn();
+    else renderAllJobs();
+  } else if (view === 'orders') renderOrders();
+  else renderMaint();
+  if (view === 'dispatch') refineLegs();
   $('#dataMode').textContent = store.mode === 'db' ? 'Shared data' : 'This browser only';
   $('#dataMode').className = 'pill ' + (store.mode === 'db' ? 'ok' : 'plain');
 }
-function setTab(name) {
-  tab = name; LS.set('tab', name);
-  $$('nav.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
-  $$('section[role=tabpanel]').forEach(s => { s.hidden = s.id !== 'tab-' + name; });
+function setView(name) {
+  GM.fit = {};
+  view = name; LS.set('view', name);
+  $$('#viewNav button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.view === name)));
+  $('#v-dispatch').hidden = name !== 'dispatch'; $('#v-orders').hidden = name !== 'orders'; $('#v-maint').hidden = name !== 'maint';
+  $('#viewDesc').textContent = VIEW_DESC[name];
 }
-function selectTruck(id) { selected = id; if (id) $('#opt-truck').value = id; renderAll(); if (id && tab !== 'live') setTab('live'); }
+function setDMode(m) {
+  GM.fit = {};
+  dMode = m; LS.set('dMode', m);
+  $$('#dMode button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+  $('#dp-map').hidden = m !== 'map'; $('#dp-jobsmap').hidden = m !== 'jobsmap'; $('#dp-list').hidden = m !== 'list';
+  $('#dp-cascade').hidden = m !== 'cascade'; $('#dp-un').hidden = m !== 'un'; $('#dp-all').hidden = m !== 'all';
+}
+function setAddMode(m) {
+  addMode = m; $$('#addMode button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+  $('#orderForm').hidden = m !== 'manual'; $('#importBox').hidden = m !== 'import';
+}
+function hintFor(inputId, hintId) {
+  const v = $(inputId).value.trim(), h = $(hintId);
+  if (!v) { h.textContent = ''; h.className = 'hint'; return null; }
+  const loc = pickedFor($(inputId)) || parseLocation(v);
+  if (loc && !loc.error) { h.textContent = (loc.kind === 'pin' ? '✓ Exact pin: ' : '✓ Town centre: ') + loc.label + ' · ' + loc.lat.toFixed(4) + ', ' + loc.lon.toFixed(4); h.className = 'hint good'; return loc; }
+  h.textContent = loc ? loc.error : ''; h.className = 'hint bad'; return null;
+}
+function formLoad() {
+  const mode = $('#of-lm').value, x = {};
+  if (mode === 'pallets') x.pallets = +$('#of-pal').value;
+  else if (mode === 'dims') { x.l = +$('#of-l').value; x.w = +$('#of-w').value; x.h = +$('#of-h').value; }
+  else x.cbm = +$('#of-cbm').value;
+  return deriveLoad(x, S);
+}
+function updateDerived() {
+  const mode = $('#of-lm').value;
+  $$('.lm').forEach(el => { el.hidden = !el.classList.contains('lm-' + mode); });
+  const d = formLoad(); $('#of-derived').textContent = d ? 'Counted as ' + d.pallets + ' pallets · ' + d.cbm + ' m³ (' + (mode === 'pallets' ? 'volume estimated at ' + S.palletCbm + ' m³ per pallet' : 'pallets estimated from volume') + ')' : 'Enter the load to see how it is counted.';
+}
+function newJobId() { return 'J-' + Math.random().toString(36).slice(2, 7).toUpperCase(); }
+
+function selectTruck(id) { selected = id; setView('dispatch'); if (dMode !== 'map') setDMode('map'); renderAll(); }
 
 /* ---------- actions ---------- */
 async function approve(jobId, truckId) { if (await guarded(() => store.set('assign', jobId, { truckId, at: Date.now() }), 'approve jobs')) notify('Job ' + jobId + ' accepted for ' + truckId + '.'); }
 async function cancelJob(jobId) { if (await guarded(() => store.del('assign', jobId), 'cancel jobs')) notify('Job ' + jobId + ' cancelled and open again.'); }
+async function logWork(tid, what) {
+  const t = truckById(tid); if (!t) return; const m = store.data.maint[tid] || {};
+  const patch = what === 'svc' ? { svcOdo: Math.round(t.odo), svcAt: Date.now() } : { tyreOdo: Math.round(t.odo), tyreAt: Date.now() };
+  if (await guarded(() => store.set('maint', tid, Object.assign({}, m, patch)), 'log maintenance')) notify((what === 'svc' ? 'Service' : 'Tyre change') + ' logged for ' + tid + '.');
+}
 
 document.addEventListener('click', async e => {
-  const tabBtn = e.target.closest('nav.tabs button'); if (tabBtn) return setTab(tabBtn.dataset.tab);
-  const dt = e.target.closest('.dtabs button'); if (dt) return setDlgTab(dt.dataset.dt);
+  const vb = e.target.closest('#viewNav button'); if (vb) { setView(vb.dataset.view); return renderAll(); }
+  const dm = e.target.closest('#dMode button'); if (dm) { setDMode(dm.dataset.m); return renderAll(); }
+  const om = e.target.closest('#oMode button'); if (om) { oMode = om.dataset.m; return renderAll(); }
   const am = e.target.closest('#addMode button'); if (am) return setAddMode(am.dataset.m);
   const row = e.target.closest('.trow'); if (row) return selectTruck(row.dataset.id);
   const g = e.target.closest('#map g[data-id]'); if (g) return selectTruck(g.dataset.id);
-  if (e.target === $('#jobsDlg')) return $('#jobsDlg').close();
   const b = e.target.closest('button[data-act]'); if (!b) return;
   const act = b.dataset.act, jid = b.dataset.j;
   if (act === 'approve') await approve(jid, b.dataset.t);
   else if (act === 'cancel') await cancelJob(jid);
   else if (act === 'select') selectTruck(b.dataset.t);
+  else if (act === 'svcDone') await logWork(b.dataset.t, 'svc');
+  else if (act === 'tyreDone') await logWork(b.dataset.t, 'tyre');
+  else if (act === 'edit') startEdit(jid);
   else if (act === 'approveTruck') { for (const x of M.plans[b.dataset.t].suggested) { if (!(await guarded(() => store.set('assign', x.job.id, { truckId: b.dataset.t, at: Date.now() }), 'approve jobs'))) break; } }
-  else if (act === 'remove') { await guarded(async () => { if (store.data.assign[jid]) await store.del('assign', jid); await store.del('jobs', jid); }, 'remove jobs'); }
+  else if (act === 'remove') {
+    if (confirmId !== jid) { confirmId = jid; clearTimeout(confirmT); confirmT = setTimeout(() => { confirmId = null; renderAll(); }, 4000); return renderAll(); }
+    confirmId = null; clearTimeout(confirmT);
+    if (await guarded(async () => { if (store.data.assign[jid]) await store.del('assign', jid); await store.del('jobs', jid); }, 'remove jobs')) { notify('Job ' + jid + ' removed.'); if (editId === jid) endEdit(); }
+  }
 });
+$('#cascade').addEventListener('toggle', e => { const d = e.target; if (d.dataset && d.dataset.id) { d.open ? openTrucks.add(d.dataset.id) : openTrucks.delete(d.dataset.id); } }, true);
 $('#approveAll').addEventListener('click', async () => {
   for (const o of Object.values(M.plans)) for (const x of o.suggested) { if (!(await guarded(() => store.set('assign', x.job.id, { truckId: o.it.truck.id, at: Date.now() }), 'approve jobs'))) return; }
 });
@@ -1153,18 +1574,15 @@ $('#fitBtn').addEventListener('click', () => { fitAll = !fitAll; renderAll(); })
 $('#backBtn').addEventListener('click', () => selectTruck(null));
 $('#adv30').addEventListener('click', () => { advance(30); renderAll(); });
 $('#adv120').addEventListener('click', () => { advance(120); renderAll(); });
-$('#opt-truck').addEventListener('change', renderOptions);
-$('#openAdd').addEventListener('click', () => openDlg('add', 'manual'));
-$('#openBoard').addEventListener('click', () => openDlg('board'));
-$('#dlgClose').addEventListener('click', () => $('#jobsDlg').close());
-$('#copyDriver').addEventListener('click', async () => {
-  const url = $('#driverLink').href;
-  try { await navigator.clipboard.writeText(url); notify('Driver page link copied.'); } catch (e) { notify('Copy failed. Open the Driver page and copy its address.'); }
-});
+$('#jm-truck').addEventListener('change', renderAll);
+$('#allFilter').addEventListener('change', renderAll);
+$('#oSearch').addEventListener('input', renderAll);
+const BASE_URL = 'https://danielaeh7227.github.io/fleet-management-system/';
+async function copyText(t, ok) { try { await navigator.clipboard.writeText(t); notify(ok); } catch (e) { notify('Copy failed. Link: ' + t); } }
+$('#copyDriver').addEventListener('click', () => copyText($('#driverLink').href, 'Driver page link copied.'));
+$('#copyView').addEventListener('click', () => copyText(BASE_URL + '#' + (view === 'maint' ? 'maintenance' : view), 'Link to this area copied.'));
 $('#loadSamples').addEventListener('click', async () => {
-  $('#boardMsg').textContent = 'Loading…';
   for (const j of sampleJobsAll()) { const { id, ...rest } = j; if (!(await guarded(() => store.set('jobs', id, rest), 'add jobs'))) break; }
-  $('#boardMsg').textContent = '';
 });
 $('#clearSample').addEventListener('click', async () => {
   for (const j of M.jobs.filter(x => x.source === 'Sample')) { await guarded(async () => { if (store.data.assign[j.id]) await store.del('assign', j.id); await store.del('jobs', j.id); }, 'remove jobs'); }
@@ -1172,6 +1590,7 @@ $('#clearSample').addEventListener('click', async () => {
 $('#of-pick').addEventListener('input', () => hintFor('#of-pick', '#of-pickHint'));
 $('#of-drop').addEventListener('input', () => hintFor('#of-drop', '#of-dropHint'));
 ['#of-lm', '#of-pal', '#of-l', '#of-w', '#of-h', '#of-cbm'].forEach(s => $(s).addEventListener('input', updateDerived));
+$('#ofCancel').addEventListener('click', endEdit);
 $('#orderForm').addEventListener('submit', async e => {
   e.preventDefault();
   const pu = hintFor('#of-pick', '#of-pickHint'), dr = hintFor('#of-drop', '#of-dropHint'), d = formLoad(), msg = $('#ofMsg');
@@ -1183,9 +1602,12 @@ $('#orderForm').addEventListener('submit', async e => {
   if (!(tonnes > 0)) return fail('Enter the weight in tonnes.'); if (!(rate >= 0)) return fail('Enter the price.');
   const date = $('#of-date').value || todayStr();
   if (!dateOk(date)) return fail('Jobs can be dated from 7 days before to 7 days ahead of today.');
-  const job = { pickup: pu, drop: dr, mode: d.mode, pallets: d.pallets, cbm: d.cbm, l: d.l, w: d.w, h: d.h, tonnes, rate, cargo: $('#of-cargo').value.trim(), date, source: 'Typed', done: false };
-  const id = newJobId();
-  if (await guarded(() => store.set('jobs', id, job), 'add jobs')) { msg.textContent = 'Job ' + id + ' added.'; msg.className = 'hint good'; $('#of-cargo').value = ''; }
+  const old = editId ? store.data.jobs[editId] : null;
+  const job = { pickup: pu, drop: dr, mode: d.mode, pallets: d.pallets, cbm: d.cbm, l: d.l, w: d.w, h: d.h, tonnes, rate, cargo: $('#of-cargo').value.trim(), date, source: old ? old.source || 'Typed' : 'Typed', done: old ? !!old.done : false };
+  const id = editId || newJobId();
+  if (await guarded(() => store.set('jobs', id, job), editId ? 'edit jobs' : 'add jobs')) {
+    if (editId) { notify('Job ' + id + ' saved.'); endEdit(); } else { msg.textContent = 'Job ' + id + ' added.'; msg.className = 'hint good'; $('#of-cargo').value = ''; }
+  }
 });
 const EXAMPLE = 'pickup,dropoff,pallets,tonnes,rate_rm,cargo,length_m,width_m,height_m,cbm\nSeremban,Rawang,12,9,780,Roof tiles,6,2.4,1.5,\nMelaka,Shah Alam,,14,980,Cement bags,10,2.4,1.4,\nKL,Tanjung Malim,8,6,520,Timber,,,,14\n"2.7300, 101.9400",Rawang,20,15,1250,Ceramic tiles,,,,';
 $('#csvExample').addEventListener('click', () => { $('#csvText').value = EXAMPLE; });
@@ -1204,7 +1626,7 @@ $('#reviewAdd').addEventListener('click', async () => {
     const ok = await guarded(() => store.set('jobs', id, { pickup: r.pu, drop: r.dr, mode: d.mode, pallets: d.pallets, cbm: d.cbm, l: d.l, w: d.w, h: d.h, tonnes: r.tonnes, rate: r.rate, cargo: r.cargo, date: r.date, source: r.src, done: false }), 'add jobs');
     if (!ok) break; n++;
   }
-  review = null; $('#reviewCard').hidden = true; if (n) { notify(n + ' jobs added.'); setDlgTab('board'); }
+  review = null; $('#reviewCard').hidden = true; if (n) { notify(n + ' jobs added.'); setAddMode('manual'); }
 });
 
 /* photo of handwritten jobs, read by Claude */
@@ -1279,13 +1701,14 @@ function startShare() {
 $('#d-share').addEventListener('click', startShare);
 $('#d-status').addEventListener('click', e => { const b = e.target.closest('button[data-s]'); if (!b) return; drvStatus = b.dataset.s; LS.set('drvStatus', drvStatus); const p = drvPos || store.data.pings[$('#d-truck').value]; if (p) sendPing({ lat: p.lat, lon: p.lon }, true); else renderDriver(); });
 $('#d-truck').addEventListener('change', () => { LS.set('drvTruck', $('#d-truck').value); renderDriver(); });
-$('#d-manual').addEventListener('input', () => { const v = $('#d-manual').value.trim(), h = $('#d-manualHint'); if (!v) { h.textContent = ''; return; } const l = parseLocation(v, true); h.textContent = l && !l.error ? '✓ ' + l.label + ' · ' + l.lat.toFixed(4) + ', ' + l.lon.toFixed(4) : (l ? l.error : ''); h.className = 'hint ' + (l && !l.error ? 'good' : 'bad'); });
-$('#d-send').addEventListener('click', () => { const l = parseLocation($('#d-manual').value, true); if (!l || l.error) { $('#d-manualHint').textContent = l ? l.error : 'Enter a place first.'; $('#d-manualHint').className = 'hint bad'; return; } drvPos = { lat: l.lat, lon: l.lon }; sendPing(drvPos, true); $('#d-msg').textContent = 'Position sent.'; });
+$('#d-manual').addEventListener('input', () => { const v = $('#d-manual').value.trim(), h = $('#d-manualHint'); if (!v) { h.textContent = ''; return; } const l = pickedFor($('#d-manual')) || parseLocation(v, true); h.textContent = l && !l.error ? '✓ ' + l.label + ' · ' + l.lat.toFixed(4) + ', ' + l.lon.toFixed(4) : (l ? l.error : ''); h.className = 'hint ' + (l && !l.error ? 'good' : 'bad'); });
+$('#d-send').addEventListener('click', () => { const l = pickedFor($('#d-manual')) || parseLocation($('#d-manual').value, true); if (!l || l.error) { $('#d-manualHint').textContent = l ? l.error : 'Enter a place first.'; $('#d-manualHint').className = 'hint bad'; return; } drvPos = { lat: l.lat, lon: l.lon }; sendPing(drvPos, true); $('#d-msg').textContent = 'Position sent.'; });
 
 /* ---------- init ---------- */
 function route() {
-  const d = location.hash === '#driver';
-  $('#dash').hidden = d; $('#drv').hidden = !d; if (d && $('#jobsDlg').open) $('#jobsDlg').close();
+  const h = location.hash.slice(1), d = h === 'driver';
+  if (HASH_VIEW[h]) { setView(HASH_VIEW[h]); }
+  $('#dash').hidden = d; $('#drv').hidden = !d;
   document.title = d ? 'Driver page' : 'Fleet Management Dashboard';
   renderAll();
 }
@@ -1298,10 +1721,16 @@ buildCfg('#costGrid', CFG_COST); buildCfg('#matchGrid', CFG_MATCH); fillTruckSel
 { const t0 = todayStr(); for (const id of ['#planDate', '#of-date']) { $(id).min = addDays(t0, -7); $(id).max = addDays(t0, 7); $(id).value = t0; } }
 $('#planDate').addEventListener('change', e => { if (dateOk(e.target.value)) { PLAN_DATE = e.target.value; renderAll(); } else { e.target.value = PLAN_DATE; notify('Pick a day from 7 days before to 7 days ahead of today.'); } });
 $('#planToday').addEventListener('click', () => { PLAN_DATE = todayStr(); $('#planDate').value = PLAN_DATE; renderAll(); });
-setTab(['live', 'jobs', 'costs'].includes(tab) ? tab : 'live');
+setView(view); setDMode(dMode); setAddMode('manual');
+legLoad();
+attachPlaces($('#of-pick'), () => hintFor('#of-pick', '#of-pickHint'));
+attachPlaces($('#of-drop'), () => hintFor('#of-drop', '#of-dropHint'));
+attachPlaces($('#d-manual'), () => $('#d-manual').dispatchEvent(new Event('input')));
 store.onChange = scheduleRender;
 route();
 store.init();
+loadGoogle();
 </script>
 
-</body></html>
+</body>
+</html>
