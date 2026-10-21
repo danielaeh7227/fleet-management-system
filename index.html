@@ -499,7 +499,7 @@ function hav(a, b) {
 }
 const road = (a, b, S) => hav(a, b) * S.roadFactor;
 const LEGS = {}; // Google driving legs: key -> {km, min, path}
-const legKey = (a, b) => [a.lat, a.lon, b.lat, b.lon].map(x => (+x).toFixed(3)).join(',');
+const legKey = (a, b) => [a.lat, a.lon, b.lat, b.lon].map(x => (+x).toFixed(2)).join(',');
 function legInfo(a, b, S) { const c = LEGS[legKey(a, b)]; if (c) return { km: c.km, min: c.min, g: true }; const d = road(a, b, S); return { km: d, min: d / S.speed * 60, g: false }; }
 function alongCross(a, b, p) {
   const k = 111, c = Math.cos(a.lat * RAD);
@@ -790,6 +790,7 @@ function gFit(id, key, pts) {
   m.fitBounds(b, 48); google.maps.event.addListenerOnce(m, 'idle', () => { if (m.getZoom() > 13) m.setZoom(13); });
 }
 const gLL = p => ({ lat: p.lat, lng: p.lon });
+function legPath(a, b) { const l = LEGS[legKey(a, b)]; if (!l) return null; if (!l.path && l.enc) l.path = gDecode(l.enc); return l.path || null; }
 const gCircle = (fill, scale, stroke) => ({ path: google.maps.SymbolPath.CIRCLE, fillColor: fill, fillOpacity: 1, strokeColor: stroke || '#fff', strokeWeight: 2, scale });
 const gDiamond = (fill, scale) => ({ path: 'M0,-1 L1,0 L0,1 L-1,0 Z', fillColor: fill, fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2, scale });
 const gSquare = (fill, scale) => ({ path: 'M-1,-1 L1,-1 L1,1 L-1,1 Z', fillColor: fill, fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2, scale });
@@ -824,8 +825,8 @@ function gDrawTrucks(focus) {
     }
     const seq = [e.pos, ...pl.stops.map(s => s.loc), F];
     for (let i = 0; i < seq.length - 1; i++) {
-      const st = pl.stops[i], isAcc = st ? M.assign[st.job.id] === focus.id : true, leg = LEGS[legKey(seq[i], seq[i + 1])];
-      const path = leg && leg.path ? leg.path : [gLL(seq[i]), gLL(seq[i + 1])];
+      const st = pl.stops[i], isAcc = st ? M.assign[st.job.id] === focus.id : true, rp = legPath(seq[i], seq[i + 1]);
+      const path = rp || [gLL(seq[i]), gLL(seq[i + 1])];
       const opt = Object.assign({ map, path, strokeColor: acc, strokeOpacity: 1, strokeWeight: 5, clickable: false, zIndex: 2 }, isAcc ? {} : gDashed(acc, 5));
       gAdd(id, new google.maps.Polyline(opt));
     }
@@ -839,6 +840,16 @@ function gDrawTrucks(focus) {
     });
     gAdd(id, new google.maps.Marker({ map, position: gLL(e.pos), zIndex: 6, icon: gCircle(cv('--s-' + e.state), 9, ink), label: { text: focus.id + ' now', color: ink, fontSize: '11px', fontWeight: '700' }, title: tFull(focus) }));
   } else {
+    M.effs.forEach((e, ti) => {
+      const o = M.plans[e.truck.id], stops = o.planAll.stops;
+      if (!e.eligible && !stops.length) return;
+      const col = 'hsl(' + ((ti * 47) % 360) + ' 62% 42%)', seq = [e.pos, ...stops.map(q => q.loc), F];
+      for (let i = 0; i < seq.length - 1; i++) {
+        const st = stops[i], isAcc = st ? M.assign[st.job.id] === e.truck.id : true, rp = legPath(seq[i], seq[i + 1]);
+        const pl = new google.maps.Polyline(Object.assign({ map, path: rp || [gLL(seq[i]), gLL(seq[i + 1])], strokeColor: col, strokeOpacity: rp ? .85 : .4, strokeWeight: stops.length ? 4 : 3, zIndex: 1 }, isAcc ? {} : gDashed(col, 4)));
+        pl.addListener('click', () => selectTruck(e.truck.id)); gAdd(id, pl);
+      }
+    });
     for (const e of M.effs) {
       pts.push(e.pos);
       const n = M.plans[e.truck.id].accepted.length;
@@ -859,7 +870,7 @@ function gDrawJobs(svgId, jobs, effs) {
   gAdd(id, new google.maps.Marker({ map, position: gLL(F), icon: gSquare(ink, 8), zIndex: 5, label: { text: 'Factory · ' + F.n, color: ink, fontSize: '12px', fontWeight: '700' } }));
   for (const j of jobs) {
     const kd = statusOf(j).kind, c = col[kd]; pts.push(j.pickup, j.drop);
-    const leg = LEGS[legKey(j.pickup, j.drop)], path = leg && leg.path ? leg.path : [gLL(j.pickup), gLL(j.drop)];
+    const path = legPath(j.pickup, j.drop) || [gLL(j.pickup), gLL(j.drop)];
     gAdd(id, new google.maps.Polyline(Object.assign({ map, path, strokeColor: c, strokeOpacity: .85, strokeWeight: 3, clickable: false }, kd === 'suggested' ? gDashed(c, 3) : {})));
     const html = '<b>' + esc(j.id) + '</b> · ' + esc(j.pickup.label) + ' → ' + esc(j.drop.label) + '<br>' + j.pallets + ' pallets · ' + j.tonnes + ' t · ' + rm(j.rate) + '<br>' + esc(KIND_LABEL[kd]) + (statusOf(j).truckId ? ' · ' + esc(statusOf(j).truckId) : '');
     const a = new google.maps.Marker({ map, position: gLL(j.pickup), icon: gCircle(c, 7), zIndex: 3, title: j.id }), b = new google.maps.Marker({ map, position: gLL(j.drop), icon: gDiamond(c, 8), zIndex: 3, title: j.id });
@@ -879,8 +890,10 @@ function legsWanted() {
   const add = (a, b) => { const k = legKey(a, b); if (!LEGS[k] && !gq.bad.has(k) && !want.has(k)) want.set(k, [a, b]); };
   for (const o of Object.values(M.plans)) {
     const seq = [o.it.pos, ...o.planAll.stops.map(s => s.loc), F];
-    if (o.cur.length || o.it.truck.id === selected) for (let i = 0; i < seq.length - 1; i++) add(seq[i], seq[i + 1]);
+    if (o.cur.length || o.it.eligible || o.it.truck.id === selected) for (let i = 0; i < seq.length - 1; i++) add(seq[i], seq[i + 1]);
   }
+  const all = (view === 'dispatch' && dMode === 'jobsmap') || view === 'orders';
+  for (const j of M.jobs) { const k = statusOf(j).kind; if (k === 'delivered') continue; if (all || k === 'accepted' || k === 'suggested') add(j.pickup, j.drop); }
   return [...want.entries()];
 }
 async function fetchLeg(a, b) {
@@ -890,11 +903,12 @@ async function fetchLeg(a, b) {
     body: JSON.stringify({ origin: ll(a), destination: ll(b), travelMode: 'DRIVE', routingPreference: 'TRAFFIC_UNAWARE' }) });
   if (!r.ok) { const t = await r.text().catch(() => ''); const e = new Error('Routes API ' + r.status + ' ' + t.slice(0, 160)); e.status = r.status; throw e; }
   const j = await r.json(), rt = j.routes && j.routes[0]; if (!rt) throw new Error('No route');
-  return { km: (rt.distanceMeters || 0) / 1000, min: parseInt(String(rt.duration || '0').replace('s', ''), 10) / 60, path: rt.polyline && rt.polyline.encodedPolyline ? gDecode(rt.polyline.encodedPolyline) : null };
+  const enc = rt.polyline && rt.polyline.encodedPolyline ? rt.polyline.encodedPolyline : null;
+  return { km: (rt.distanceMeters || 0) / 1000, min: parseInt(String(rt.duration || '0').replace('s', ''), 10) / 60, enc, path: enc ? gDecode(enc) : null };
 }
 async function refineLegs() {
   if (!GM.ok || gq.busy || GM.routesFail || Date.now() - gq.last < 15000) return;
-  const todo = legsWanted().slice(0, 10); if (!todo.length) return;
+  const todo = legsWanted().slice(0, 16); if (!todo.length) return;
   gq.busy = true; gq.last = Date.now(); let got = 0;
   await Promise.all(todo.map(async ([k, [a, b]]) => {
     try { LEGS[k] = await fetchLeg(a, b); got++; }
@@ -904,7 +918,7 @@ async function refineLegs() {
   if (got || GM.routesFail) renderAll();
 }
 function legSave() {
-  try { const o = {}; Object.keys(LEGS).slice(-600).forEach(k => { o[k] = { km: LEGS[k].km, min: LEGS[k].min }; }); localStorage.setItem('bfd2.legs', JSON.stringify(o)); } catch (e) {}
+  try { const o = {}; Object.keys(LEGS).slice(-250).forEach(k => { o[k] = { km: LEGS[k].km, min: LEGS[k].min, enc: LEGS[k].enc || null }; }); localStorage.setItem('bfd2.legs', JSON.stringify(o)); } catch (e) {}
 }
 function legLoad() { try { const o = JSON.parse(localStorage.getItem('bfd2.legs') || '{}'); for (const k in o) LEGS[k] = o[k]; } catch (e) {} }
 
@@ -1174,7 +1188,7 @@ function renderMap() {
   }
   $('#map').toggleAttribute('hidden', GM.ok); $('#gmap').hidden = !GM.ok;
   if (GM.ok) gDrawTrucks(focus); else { const el = $('#map'); el.setAttribute('viewBox', '0 0 ' + vbW.toFixed(1) + ' ' + vbH.toFixed(1)); el.innerHTML = g; }
-  $('#mapNote').textContent = GM.ok ? 'Google map. Route times use Google driving routes where they have loaded, and distance ÷ average speed otherwise. Loading time is added per stop.' : 'Schematic map. Distances are straight-line × 1.3 and times are distance ÷ average speed plus loading time, not Google route times.';
+  $('#mapNote').textContent = GM.ok ? 'Google map. Routes follow real roads and the drive times are Google estimates; a thin straight line means that leg is still loading, and its time is estimated from distance. Loading time is added per stop.' : 'Schematic map. Distances are straight-line × 1.3 and times are distance ÷ average speed plus loading time, not Google route times.';
   $('#mapTitle').textContent = focus ? 'Truck ' + focus.id + ' · route home' : 'Where the trucks are';
   $('#backBtn').hidden = !focus; $('#fitBtn').hidden = !!focus; $('#fitBtn').textContent = fitAll ? 'Show whole peninsula' : 'Zoom to fleet';
   $('#legend').innerHTML = focus
