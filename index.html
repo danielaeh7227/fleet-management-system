@@ -208,6 +208,7 @@ details.tr .in { padding: 10px 12px; display: flex; flex-direction: column; gap:
 .alert .sub { grid-column: 2; color: var(--muted); font-size: 12.5px; }
 #toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: max(16px, env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 9px 14px; border-radius: 8px; z-index: 50; max-width: calc(100vw - 32px); font-size: 13px; }
 .gmap { width: 100%; height: 560px; }
+#navBtn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 @media (max-width: 700px) { .gmap { height: 400px; } }
 .sugg { position: absolute; left: 0; right: 0; top: 100%; z-index: 20; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 6px 18px rgba(0,0,0,.18); display: flex; flex-direction: column; max-height: 280px; overflow-y: auto; }
 .sugg button { text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 8px 10px; }
@@ -226,6 +227,7 @@ details.tr .in { padding: 10px 12px; display: flex; flex-direction: column; gap:
       <a class="btn" id="driverLink" href="https://danielaeh7227.github.io/fleet-management-system/#driver" target="_blank" rel="noopener">Driver page ↗</a>
       <button class="btn" id="copyDriver" type="button">Copy driver link</button>
       <span id="dataMode" class="pill plain" title="Where jobs and truck positions are kept"></span>
+      <button class="btn" id="navBtn" type="button" aria-pressed="true" title="Muted map so the routes stand out">Navigation view</button>
       <span id="gStatus" class="pill plain">Google Maps loading…</span>
     </div>
   </header>
@@ -756,9 +758,27 @@ function maintAlerts(rows, S, dom) {
 <script id="gm">
 /* ---------- Google Maps, Places and Routes (only runs on the allowed site; the schematic map is the fallback) ---------- */
 const GMAPS_KEY = 'AIzaSyDvMsP5jSIXQSUzIzNe3T6H40M-tkSVb3Y';
-const GM = { ok: false, failed: false, routesFail: '', maps: {}, over: {}, fit: {}, info: null, places: null, token: null };
+const NAV_LIGHT = [
+  { elementType: 'geometry', stylers: [{ color: '#eceff1' }] }, { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#6b7780' }] }, { elementType: 'labels.text.stroke', stylers: [{ color: '#f5f7f8' }] },
+  { featureType: 'poi', stylers: [{ visibility: 'off' }] }, { featureType: 'transit', stylers: [{ visibility: 'off' }] }, { featureType: 'administrative.land_parcel', stylers: [{ visibility: 'off' }] },
+  { featureType: 'landscape.natural', elementType: 'geometry', stylers: [{ color: '#e3e8e5' }] }, { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#c5d6e4' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] }, { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#d5dade' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#f7f8f9' }] }, { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#c4ccd2' }] },
+  { featureType: 'road.local', elementType: 'labels', stylers: [{ visibility: 'off' }] }, { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#c0c8cd' }] }];
+const NAV_DARK = [
+  { elementType: 'geometry', stylers: [{ color: '#1c232a' }] }, { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#8a96a0' }] }, { elementType: 'labels.text.stroke', stylers: [{ color: '#151b20' }] },
+  { featureType: 'poi', stylers: [{ visibility: 'off' }] }, { featureType: 'transit', stylers: [{ visibility: 'off' }] }, { featureType: 'administrative.land_parcel', stylers: [{ visibility: 'off' }] },
+  { featureType: 'landscape.natural', elementType: 'geometry', stylers: [{ color: '#1a2128' }] }, { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#101a24' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2b343c' }] }, { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#232b32' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#36414a' }] }, { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#2b343c' }] },
+  { featureType: 'road.local', elementType: 'labels', stylers: [{ visibility: 'off' }] }, { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#3a454e' }] }];
+const NAVC = '#1a73e8';
+const GM = { nav: (() => { try { return localStorage.getItem('bfd2.nav') !== '0'; } catch (e) { return true; } })(), ok: false, failed: false, routesFail: '', maps: {}, over: {}, fit: {}, info: null, places: null, token: null };
 const cv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim() || '#0E6F66';
 function gmStatus() {
+  const nb = document.getElementById('navBtn'); if (nb) nb.hidden = !GM.ok;
   const el = document.getElementById('gStatus'); if (!el) return;
   if (GM.failed) { el.textContent = 'Google Maps unavailable: schematic map'; el.className = 'pill late'; }
   else if (!GM.ok) { el.textContent = 'Google Maps loading…'; el.className = 'pill plain'; }
@@ -776,9 +796,25 @@ function loadGoogle() {
   s.async = true; s.onerror = () => { GM.failed = true; gmStatus(); renderAll(); };
   document.head.appendChild(s); gmStatus();
 }
+function gDark() { const t = document.documentElement.dataset.theme; return t === 'dark' || (t !== 'light' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches); }
+function gStyles() { return GM.nav ? (gDark() ? NAV_DARK : NAV_LIGHT) : []; }
+function gSetNav(on) {
+  GM.nav = on; try { localStorage.setItem('bfd2.nav', on ? '1' : '0'); } catch (e) {}
+  const b = document.getElementById('navBtn'); if (b) b.setAttribute('aria-pressed', String(on));
+  Object.values(GM.maps).forEach(m => m.setOptions({ styles: gStyles() }));
+  if (typeof renderAll === 'function') renderAll();
+}
+/* a route drawn like a navigation app: white casing, solid colour, direction arrows; suggested legs are dashed */
+function gRoute(id, map, path, color, w, dashed, arrows, z, onClick) {
+  gAdd(id, new google.maps.Polyline({ map, path, strokeColor: gDark() ? '#0b1118' : '#ffffff', strokeOpacity: 1, strokeWeight: w + 4, zIndex: z * 10, clickable: false }));
+  const base = { map, path, strokeColor: color, strokeOpacity: 1, strokeWeight: w, zIndex: z * 10 + 1, clickable: !!onClick };
+  const opt = dashed ? Object.assign(base, gDashed(color, w)) : base;
+  if (!dashed && arrows) opt.icons = [{ icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, scale: 2.4, strokeColor: '#fff', strokeWeight: 1, fillColor: '#fff', fillOpacity: 1 }, offset: '60px', repeat: '110px' }];
+  const pl = new google.maps.Polyline(opt); if (onClick) pl.addListener('click', onClick); return gAdd(id, pl);
+}
 function gMap(id) {
   if (GM.maps[id]) return GM.maps[id];
-  const m = new google.maps.Map(document.getElementById(id), { center: { lat: 3.4, lng: 102 }, zoom: 7, mapTypeControl: false, streetViewControl: false, fullscreenControl: true, gestureHandling: 'cooperative', clickableIcons: false });
+  const m = new google.maps.Map(document.getElementById(id), { center: { lat: 3.4, lng: 102 }, zoom: 7, mapTypeControl: false, streetViewControl: false, fullscreenControl: true, gestureHandling: 'cooperative', clickableIcons: false, styles: gStyles() });
   GM.maps[id] = m; GM.over[id] = []; return m;
 }
 function gClear(id) { (GM.over[id] || []).forEach(o => o.setMap(null)); GM.over[id] = []; }
@@ -827,8 +863,7 @@ function gDrawTrucks(focus) {
     for (let i = 0; i < seq.length - 1; i++) {
       const st = pl.stops[i], isAcc = st ? M.assign[st.job.id] === focus.id : true, rp = legPath(seq[i], seq[i + 1]);
       const path = rp || [gLL(seq[i]), gLL(seq[i + 1])];
-      const opt = Object.assign({ map, path, strokeColor: acc, strokeOpacity: 1, strokeWeight: 5, clickable: false, zIndex: 2 }, isAcc ? {} : gDashed(acc, 5));
-      gAdd(id, new google.maps.Polyline(opt));
+      gRoute(id, map, path, NAVC, 7, !isAcc, !!rp, 2);
     }
     pl.stops.forEach((st, i) => {
       const isAcc = M.assign[st.job.id] === focus.id;
@@ -843,11 +878,10 @@ function gDrawTrucks(focus) {
     M.effs.forEach((e, ti) => {
       const o = M.plans[e.truck.id], stops = o.planAll.stops;
       if (!e.eligible && !stops.length) return;
-      const col = 'hsl(' + ((ti * 47) % 360) + ' 62% 42%)', seq = [e.pos, ...stops.map(q => q.loc), F];
+      const col = 'hsl(' + ((ti * 47) % 360) + ' 75% 40%)', seq = [e.pos, ...stops.map(q => q.loc), F];
       for (let i = 0; i < seq.length - 1; i++) {
         const st = stops[i], isAcc = st ? M.assign[st.job.id] === e.truck.id : true, rp = legPath(seq[i], seq[i + 1]);
-        const pl = new google.maps.Polyline(Object.assign({ map, path: rp || [gLL(seq[i]), gLL(seq[i + 1])], strokeColor: col, strokeOpacity: rp ? .85 : .4, strokeWeight: stops.length ? 4 : 3, zIndex: 1 }, isAcc ? {} : gDashed(col, 4)));
-        pl.addListener('click', () => selectTruck(e.truck.id)); gAdd(id, pl);
+        gRoute(id, map, rp || [gLL(seq[i]), gLL(seq[i + 1])], col, stops.length ? 5 : 4, !isAcc, !!rp, 1, () => selectTruck(e.truck.id));
       }
     });
     for (const e of M.effs) {
@@ -871,7 +905,7 @@ function gDrawJobs(svgId, jobs, effs) {
   for (const j of jobs) {
     const kd = statusOf(j).kind, c = col[kd]; pts.push(j.pickup, j.drop);
     const path = legPath(j.pickup, j.drop) || [gLL(j.pickup), gLL(j.drop)];
-    gAdd(id, new google.maps.Polyline(Object.assign({ map, path, strokeColor: c, strokeOpacity: .85, strokeWeight: 3, clickable: false }, kd === 'suggested' ? gDashed(c, 3) : {})));
+    gRoute(id, map, path, c, 4, kd === 'suggested', false, 1);
     const html = '<b>' + esc(j.id) + '</b> · ' + esc(j.pickup.label) + ' → ' + esc(j.drop.label) + '<br>' + j.pallets + ' pallets · ' + j.tonnes + ' t · ' + rm(j.rate) + '<br>' + esc(KIND_LABEL[kd]) + (statusOf(j).truckId ? ' · ' + esc(statusOf(j).truckId) : '');
     const a = new google.maps.Marker({ map, position: gLL(j.pickup), icon: gCircle(c, 7), zIndex: 3, title: j.id }), b = new google.maps.Marker({ map, position: gLL(j.drop), icon: gDiamond(c, 8), zIndex: 3, title: j.id });
     gInfo(map, a, html); gInfo(map, b, html); gAdd(id, a); gAdd(id, b);
@@ -1737,6 +1771,7 @@ $('#planDate').addEventListener('change', e => { if (dateOk(e.target.value)) { P
 $('#planToday').addEventListener('click', () => { PLAN_DATE = todayStr(); $('#planDate').value = PLAN_DATE; renderAll(); });
 setView(view); setDMode(dMode); setAddMode('manual');
 legLoad();
+$('#navBtn').addEventListener('click', () => gSetNav(!GM.nav)); $('#navBtn').setAttribute('aria-pressed', String(GM.nav));
 attachPlaces($('#of-pick'), () => hintFor('#of-pick', '#of-pickHint'));
 attachPlaces($('#of-drop'), () => hintFor('#of-drop', '#of-dropHint'));
 attachPlaces($('#d-manual'), () => $('#d-manual').dispatchEvent(new Event('input')));
